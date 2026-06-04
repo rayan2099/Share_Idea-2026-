@@ -1,0 +1,6 @@
+{
+  "name": "Share Idea",
+  "description": "A platform to receive, evaluate, and manage startup ideas from entrepreneurs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
