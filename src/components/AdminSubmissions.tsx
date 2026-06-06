@@ -25,6 +25,7 @@ import {
 import { Submission, SubmissionStatus, Language } from '../types';
 import { translations } from '../translations';
 import { downloadFile } from '../dataStore';
+import { Logo } from './Logo';
 
 interface AdminSubmissionsProps {
   lang: Language;
@@ -743,7 +744,10 @@ This file simulates the uploaded document securely within the AI Studio preview 
             <tbody className="divide-y divide-white/5" id="table-body">
               {filteredSubmissions.length === 0 ? (
                 <tr id="empty-table-row">
-                  <td colSpan={8} className="py-16 text-center text-[#B0D4E0]/70 font-ar" id="empty-table-cell">
+                  <td colSpan={8} className="py-16 text-center text-[var(--secondary-text)]/70 font-ar flex flex-col items-center justify-center gap-3" id="empty-table-cell" style={{ display: 'table-cell' }}>
+                    <div className="flex justify-center mb-3" style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}>
+                      <Logo size="sm" />
+                    </div>
                     <p className="text-sm font-bold mb-1">{t.noSubmissions}</p>
                     <p className="text-xs opacity-75">{lang === 'ar' ? 'جرّب كتابة كلمة بحث أخرى أو تعديل فلاتر الحالة' : 'Try typing another keyword or toggling options'}</p>
                   </td>

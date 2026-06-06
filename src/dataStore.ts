@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Submission, SubmissionStatus, Moderator } from './types';
+import { Submission, SubmissionStatus, Moderator, ContactMessage } from './types';
 
 // Let's create helper to generate unique reference ID: IDEA-YYYY-XXXX
 export function generateReferenceId(): string {
@@ -473,7 +473,38 @@ export interface EmailLog {
 const STORAGE_KEYS = {
   SUBMISSIONS: 'shareidea_submissions_v2',
   EMAIL_LOGS: 'shareidea_email_logs_v2',
+  CONTACT_MESSAGES: 'shareidea_contact_messages_v2',
 };
+
+export const DEFAULT_CONTACT_MESSAGES: ContactMessage[] = [
+  {
+    id: 'msg-1',
+    name: 'فيصل محمد المطيري',
+    email: 'f.mutairi@investcorp.sa',
+    subject: 'طلب شراكة استراتيجية لمسرعة أعمال',
+    message: 'السلام عليكم ورحمة الله، نحن في شركة ريادة للاستثمار بصدد إطلاق الدفعة الثالثة لمسرعة أعمالنا ونرغب في بحث سبل الشراكة مع منصتكم لمشاركة الفرص الاستثمارية التي تسجل لديكم وتسهيل وصولها لمستثمرينا المعتمدين والمساهمة الفاعلة في منظومة الابتكار بمرحلتها المبكرة.',
+    created_at: '2026-06-02T14:20:00Z',
+    is_read: false
+  },
+  {
+    id: 'msg-2',
+    name: 'سلوى القحطاني',
+    email: 'salwa@techhub.sa',
+    subject: 'استفسار بخصوص العرض التقديمي وحجم الملف المرفق',
+    message: 'مرحباً فريق شارك الفكرة، أحاول رفع ملف عرض تقديمي بصيغة PowerPoint بحجم 18 ميجابايت ولكنه يظهر رسالة غير معروفة. هل هناك حد أقصى للرفع أو هل يفضل رفع الروابط السحابية مثل OneDrive أو Google Drive؟ شكراً لكم لحرصكم وجهودكم المبذولة.',
+    created_at: '2026-06-03T11:45:00Z',
+    is_read: true
+  },
+  {
+    id: 'msg-3',
+    name: 'د. عادل الصقير',
+    email: 'adel.s@alrashed-group.com',
+    subject: 'فريق تقييم الأبحاث العلمية والتراخيص الطبية',
+    message: 'بصفتي مستشاراً سابقاً لهيئة الغذاء والدواء، أود الاستفسار عن إمكانية الإنضمام للجنة التحكيم الاستشارية لديكم لتقييم المشاريع الصحية الحيوية والصيدلانية لتقديم الدعم العلمي والتجاري والتنظيمي المناسب لأصحاب الأفكار المبتدئين بالقطاع بالمملكة.',
+    created_at: '2026-06-05T16:10:00Z',
+    is_read: false
+  }
+];
 
 // Always use version 3 of database to overwrite any previous version mismatch and guarantee clean setup
 const DB_VERSION = 3;
@@ -649,6 +680,76 @@ export function initDataStore() {
   if (!existingLogs) {
     localStorage.setItem(STORAGE_KEYS.EMAIL_LOGS, JSON.stringify([]));
   }
+  const existingContacts = localStorage.getItem(STORAGE_KEYS.CONTACT_MESSAGES);
+  if (!existingContacts) {
+    localStorage.setItem(STORAGE_KEYS.CONTACT_MESSAGES, JSON.stringify(DEFAULT_CONTACT_MESSAGES));
+  }
+}
+
+// Get all contact messages
+export function getContactMessages(): ContactMessage[] {
+  if (typeof window === 'undefined') return DEFAULT_CONTACT_MESSAGES;
+  initDataStore();
+  const raw = localStorage.getItem(STORAGE_KEYS.CONTACT_MESSAGES);
+  return raw ? JSON.parse(raw) : DEFAULT_CONTACT_MESSAGES;
+}
+
+// Save contact messages
+export function saveContactMessages(list: ContactMessage[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEYS.CONTACT_MESSAGES, JSON.stringify(list));
+}
+
+// Create custom contact message
+export function createContactMessage(contact: { name: string; email: string; subject: string; message: string }): ContactMessage {
+  const list = getContactMessages();
+  const created: ContactMessage = {
+    ...contact,
+    id: 'msg-' + Math.random().toString(36).substr(2, 9),
+    created_at: new Date().toISOString(),
+    is_read: false
+  };
+  list.unshift(created);
+  saveContactMessages(list);
+
+  // Trigger simulated resend outgoing email representation for contact form also
+  const emailLog: EmailLog = {
+    id: `email-${Math.random().toString(36).substr(2, 9)}`,
+    to: 'shareidea01@gmail.com',
+    sender: 'system@shareidea.sa',
+    subject: `✉️ رسالة تواصل جديدة — [${contact.subject}]`,
+    body: `
+رسالة تواصل جديدة من نموذج اتصل بنا:
+
+- الاسم: ${contact.name}
+- البريد الإلكتروني: ${contact.email}
+- موضوع الرسالة: ${contact.subject}
+
+تفاصيل الرسالة:
+${contact.message}
+
+تم تسجيل الرسالة وحفظها في قاعدة البيانات للمشرفين بموثوقية.
+    `.trim(),
+    sent_at: new Date().toISOString()
+  };
+
+  const logs = getEmailLogs();
+  logs.unshift(emailLog);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.EMAIL_LOGS, JSON.stringify(logs));
+  }
+
+  return created;
+}
+
+// Update read status
+export function markContactMessageAsRead(id: string, isRead: boolean) {
+  const list = getContactMessages();
+  const idx = list.findIndex(m => m.id === id);
+  if (idx !== -1) {
+    list[idx].is_read = isRead;
+    saveContactMessages(list);
+  }
 }
 
 // Get all submissions
@@ -803,6 +904,7 @@ export function clearAllSubmissionsAndSetDefaults() {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(DEFAULT_SUBMISSIONS));
   localStorage.setItem(STORAGE_KEYS.EMAIL_LOGS, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.CONTACT_MESSAGES, JSON.stringify(DEFAULT_CONTACT_MESSAGES));
 }
 
 // --- ADMINS & MODERATORS DYNAMIC SECURITY ---

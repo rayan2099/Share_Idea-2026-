@@ -1,11 +1,8 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React from 'react';
+import React, { useState } from 'react';
+import { Menu, X } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../translations';
+import { Logo } from './Logo';
 
 interface NavbarProps {
   lang: Language;
@@ -16,97 +13,158 @@ interface NavbarProps {
 
 export default function Navbar({ lang, onToggleLang, currentPath, onNavigate }: NavbarProps) {
   const t = translations[lang];
+  const isAr = lang === 'ar';
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Link definitions
+  const links = [
+    { label: isAr ? 'الرئيسية' : 'Home', path: '/' },
+    { label: isAr ? 'من نحن' : 'About Us', path: '/about' },
+    { label: isAr ? 'الأسئلة الشائعة' : 'FAQ', path: '/faq' },
+    { label: isAr ? 'تواصل معنا' : 'Contact Us', path: '/contact' },
+  ];
+
+  const handleNavClick = (path: string) => {
+    onNavigate(path);
+    setIsMobileMenuOpen(false);
+  };
 
   return (
-    <nav className="w-full px-6 md:px-12 py-6 md:py-8 flex items-center justify-between relative z-30" id="top-navbar" dir="ltr">
-      {/* Left: Logo Section */}
+    <nav 
+      className="w-full flex items-center justify-between relative z-40 transition-all duration-300" 
+      style={{ height: '75px', padding: '0 24px', backgroundColor: 'transparent' }} 
+      id="top-navbar" 
+      dir={isAr ? 'rtl' : 'ltr'}
+    >
+      {/* 1. Left (or Right relative to RTL): logo view */}
       <div 
-        className="flex items-center gap-3 cursor-pointer select-none bg-transparent" 
-        onClick={() => onNavigate('/')}
+        className="flex items-center cursor-pointer select-none" 
+        onClick={() => handleNavClick('/')}
         id="navbar-logo-container"
+        style={{ background: 'transparent', border: 'none', padding: 0 }}
       >
-        <svg 
-          width="28" 
-          height="30" 
-          viewBox="0 0 130 140" 
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg" 
-          className="select-none bg-transparent"
-          id="navbar-logo-lightbulb"
-        >
-          {/* Top spark */}
-          <line x1="65" y1="2" x2="65" y2="14" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
-          {/* Top-right spark */}
-          <line x1="96" y1="10" x2="88" y2="18" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
-          {/* Top-left spark */}
-          <line x1="34" y1="10" x2="42" y2="18" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
-          {/* Right spark */}
-          <line x1="112" y1="42" x2="100" y2="42" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
-          {/* Left spark */}
-          <line x1="18" y1="42" x2="30" y2="42" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
-
-          {/* Main bulb circle — large and clear */}
-          <circle cx="65" cy="52" r="32" stroke="#F59E0B" strokeWidth="3" fill="none"/>
-
-          {/* Filament inside — wavy line like original */}
-          <path d="M50 52 C54 44, 58 60, 65 52 C72 44, 76 60, 80 52" 
-                stroke="#F59E0B" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-
-          {/* Left side of neck connecting bulb to base */}
-          <path d="M45 76 Q43 88 50 92" stroke="#F59E0B" strokeWidth="3" fill="none" strokeLinecap="round"/>
-          {/* Right side of neck */}
-          <path d="M85 76 Q87 88 80 92" stroke="#F59E0B" strokeWidth="3" fill="none" strokeLinecap="round"/>
-
-          {/* Base lines (3 horizontal lines, getting shorter) */}
-          <line x1="50" y1="92" x2="80" y2="92" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
-          <line x1="53" y1="101" x2="77" y2="101" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
-          <line x1="56" y1="110" x2="74" y2="110" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
-        </svg>
-        <div className="flex flex-col items-start leading-none" id="navbar-logo-text-box">
-          <span className="text-[#F59E0B] font-bold text-xl tracking-tight" id="navbar-brand-name">
-            {translations[lang].brandName}
-          </span>
-          <span 
-            className="text-[#F59E0B] text-[10px] font-bold tracking-[0.2em] uppercase font-mono mt-0.5" 
-            style={{ fontVariant: 'small-caps' }}
-            id="navbar-brand-subtitle"
-          >
-            {translations[lang].brandSubtitle}
-          </span>
-        </div>
+        <Logo size="custom" style={{ width: 'clamp(90px, 14vw, 135px)', display: 'block' }} />
       </div>
 
-      {/* Right: Navigation Controls */}
-      <div className="flex items-center gap-6 md:gap-8 animate-fade-in" id="navbar-controls-container">
-        {/* Admin Link */}
+      {/* 2. Desktop Navigation Center Links (View hidden on Mobile) */}
+      <div 
+        className="hidden md:flex items-center gap-7 text-[#B0D4E0] font-ar text-sm font-semibold select-none"
+        id="desktop-nav-links-container"
+      >
+        {links.map((link) => {
+          const isActive = currentPath === link.path;
+          return (
+            <button
+              key={link.path}
+              onClick={() => handleNavClick(link.path)}
+              className={`hover:text-white transition-colors cursor-pointer relative py-1 ${
+                isActive ? 'text-[#F5C842] font-bold' : ''
+              }`}
+            >
+              <span>{link.label}</span>
+              {isActive && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#F5C842] rounded-full animate-scale-up" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. Right: Control Deck (Desktop) */}
+      <div className="hidden md:flex items-center gap-6" id="navbar-controls-desktop">
+        {/* Admin portal trigger link */}
         <button
           onClick={() => {
             if (currentPath.startsWith('/admin')) {
-              onNavigate('/');
+              handleNavClick('/');
             } else {
-              onNavigate('/admin/login');
+              handleNavClick('/admin/login');
             }
           }}
-          className="text-white/90 hover:text-white font-medium text-sm transition-colors cursor-pointer"
+          className="text-white/95 hover:text-[#F5C842] font-semibold text-sm transition-colors cursor-pointer"
           id="navbar-admin-link"
         >
-          <span>{currentPath.startsWith('/admin') ? (lang === 'ar' ? 'الرئيسية' : 'Home') : t.adminLink}</span>
+          <span>{currentPath.startsWith('/admin') ? (isAr ? 'الرئيسية' : 'Home') : t.adminLink}</span>
         </button>
 
-        {/* Language Switch Toggle */}
+        {/* Global language toggle badge */}
         <button
           onClick={onToggleLang}
-          className="flex items-center gap-2 text-white/90 hover:text-white border border-white/20 px-3.5 py-1.5 rounded-md transition-all text-xs font-bold leading-none bg-transparent hover:bg-white/5 cursor-pointer"
+          className="flex items-center gap-1.5 text-white/90 hover:text-[#F5C842] border border-white/20 px-3.5 py-1.5 rounded-full transition-all text-xs font-bold bg-transparent hover:bg-white/5 cursor-pointer"
           id="navbar-language-toggle"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5 text-[#F5C842]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10"/>
             <line x1="2" y1="12" x2="22" y2="12"/>
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
           </svg>
-          <span className="text-sm font-bold">{lang === 'ar' ? 'EN' : 'AR'}</span>
+          <span className="font-extrabold">{isAr ? 'EN' : 'AR'}</span>
         </button>
       </div>
+
+      {/* 4. Mobile Controls: Burger trigger, Lang switch */}
+      <div className="flex md:hidden items-center gap-4" id="navbar-controls-mobile">
+        {/* Language switch wrapper */}
+        <button
+          onClick={onToggleLang}
+          className="flex items-center gap-1.5 text-white/90 border border-white/20 px-2.5 py-1 rounded-full text-[10px] font-bold bg-transparent"
+        >
+          <span className="font-extrabold text-[#F5C842]">{isAr ? 'EN' : 'AR'}</span>
+        </button>
+
+        {/* Hamburger open trigger button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="text-white hover:text-[#F5C842] focus:outline-none focus:ring-1 focus:ring-white/20 p-1.5 rounded-lg transition-colors bg-white/5"
+          aria-label="Toggle Menu"
+        >
+          {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* 5. Mobile Accordion sliding full backdrop navigation menu */}
+      {isMobileMenuOpen && (
+        <div 
+          className="absolute top-[75px] left-0 right-0 bg-[#0A4F68] border-b border-white/10 shadow-2xl p-5 md:hidden z-50 flex flex-col gap-4 animate-scale-up"
+          id="mobile-drawer-canvas"
+          dir={isAr ? 'rtl' : 'ltr'}
+        >
+          <div className="flex flex-col gap-3">
+            {links.map((link) => {
+              const isActive = currentPath === link.path;
+              return (
+                <button
+                  key={link.path}
+                  onClick={() => handleNavClick(link.path)}
+                  className={`w-full text-start py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${
+                    isActive 
+                      ? 'bg-[#F5C842]/10 text-[#F5C842] border-r-4 border-[#F5C842]' 
+                      : 'text-white/80 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  {link.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="h-[1px] bg-white/5 my-1" />
+
+          {/* Secure admin view and session trigger */}
+          <button
+            onClick={() => {
+              if (currentPath.startsWith('/admin')) {
+                handleNavClick('/');
+              } else {
+                handleNavClick('/admin/login');
+              }
+            }}
+            className="w-full text-center py-3 bg-[#083D52] hover:bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-[#F5C842] transition-all"
+          >
+            {currentPath.startsWith('/admin') ? (isAr ? 'العودة للرئيسية' : 'Back to Home') : t.adminLink}
+          </button>
+        </div>
+      )}
     </nav>
   );
 }

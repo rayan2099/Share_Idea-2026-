@@ -96,6 +96,8 @@ const renderPieLabel = (props: any, lang: Language) => {
   );
 };
 
+import { Logo } from './Logo';
+
 interface AdminDashboardProps {
   lang: Language;
   submissions: Submission[];
@@ -523,11 +525,9 @@ export default function AdminDashboard({ lang, submissions, onNavigate }: AdminD
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center p-8 text-center h-full min-h-[220px]" id="chart-empty-state">
-      <svg width="50" height="50" viewBox="0 0 130 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-3 text-[#F5C842] animate-pulse">
-        <circle cx="65" cy="52" r="32" stroke="#F5C842" strokeWidth="3" fill="none"/>
-        <path d="M50 52 C54 44, 58 60, 65 52 C72 44, 76 60, 80 52" stroke="#F5C842" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-        <line x1="65" y1="2" x2="65" y2="14" stroke="#F5C842" strokeWidth="3" strokeLinecap="round"/>
-      </svg>
+      <div className="mb-4" style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}>
+        <Logo size="sm" />
+      </div>
       <p className="text-gray-300 text-sm font-bold">{lang === 'ar' ? 'لا توجد بيانات بعد' : 'No data available yet'}</p>
     </div>
   );
@@ -558,7 +558,7 @@ export default function AdminDashboard({ lang, submissions, onNavigate }: AdminD
 
       {/* STEP 11 — DASHBOARD HEADER REGULATORY CONTROLS */}
       <div 
-        className="bg-[#083D52] p-5 rounded-2xl border border-white/8 shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex flex-col md:flex-row md:items-center justify-between gap-3 md:h-[60px] min-h-[60px]" 
+        className="bg-[#083D52] p-5 rounded-2xl border border-white/8 shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex flex-col lg:flex-row lg:items-center justify-between gap-4" 
         style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
         id="dashboard-hdr-controls"
       >
@@ -619,7 +619,7 @@ export default function AdminDashboard({ lang, submissions, onNavigate }: AdminD
       </div>
 
       {/* KPI CARDS (8 GORGEOUS DATA CONTAINERS) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px]" id="stats-grid-8-kpi">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-[16px]" id="stats-grid-8-kpi">
         {[
           { label: lang === 'ar' ? 'إجمالي الأفكار' : 'Total Ideas', val: totalCount, icon: <FolderGit2 /> },
           { label: lang === 'ar' ? 'جديد هذا الأسبوع' : 'New This Week', val: countNewThisWeek, icon: <CalendarDays /> },
@@ -635,7 +635,7 @@ export default function AdminDashboard({ lang, submissions, onNavigate }: AdminD
             className="bg-[#0A4F68] border border-[#F5C842]/15 rounded-[16px] flex items-center justify-between transition-all hover:scale-[1.02] shadow-[0_4px_20px_rgba(0,0,0,0.2)]" 
             style={{ 
               height: '110px', 
-              padding: '20px 24px',
+              padding: '16px 20px',
               fontFamily: "'Tajawal', sans-serif" 
             }} 
             id={`kpi-${idx}`}
@@ -647,7 +647,7 @@ export default function AdminDashboard({ lang, submissions, onNavigate }: AdminD
               <span 
                 className="text-[#F5C842] font-num font-extrabold leading-none block mt-1" 
                 style={{ 
-                  fontSize: '32px', 
+                  fontSize: 'clamp(20px, 2.5vw, 30px)', 
                   fontWeight: 800, 
                   textAlign: 'right' 
                 }}

@@ -28,6 +28,7 @@ import {
   updateSubmissionAdminFields, 
   getEmailLogs, 
   clearAllSubmissionsAndSetDefaults,
+  getContactMessages,
   initDataStore,
   EmailLog 
 } from './dataStore';
@@ -35,12 +36,20 @@ import {
 // Dynamic Sub-components imports
 import Navbar from './components/Navbar';
 import LandingHero from './components/LandingHero';
+import AboutUs from './components/AboutUs';
 import SubmissionForm from './components/SubmissionForm';
 import SuccessView from './components/SuccessView';
 import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
 import AdminSubmissions from './components/AdminSubmissions';
+import AdminMessages from './components/AdminMessages';
 import AdminSettings from './components/AdminSettings';
+import AboutPage from './components/AboutPage';
+import FAQPage from './components/FAQPage';
+import ContactPage from './components/ContactPage';
+import DocsPage from './components/DocsPage';
+import Footer from './components/Footer';
+import { Logo } from './components/Logo';
 
 export default function App() {
   // Initialize Database on load
@@ -72,7 +81,7 @@ export default function App() {
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
-      if (['/submit', '/admin/login', '/admin/dashboard', '/admin/submissions', '/admin/settings'].includes(pathname)) {
+      if (['/submit', '/about', '/faq', '/contact', '/privacy', '/terms', '/admin/login', '/admin/dashboard', '/admin/submissions', '/admin/messages', '/admin/settings'].includes(pathname)) {
         return pathname;
       }
     }
@@ -159,6 +168,7 @@ export default function App() {
 
   // 5. Shared submissions list state
   const [submissionsList, setSubmissionsList] = useState<Submission[]>(() => getSubmissions());
+  const [contactMessagesList, setContactMessagesList] = useState(() => getContactMessages());
   
   // Last Reference ID submitted for success screen
   const [lastSubmittedRef, setLastSubmittedRef] = useState<string>('');
@@ -171,6 +181,14 @@ export default function App() {
   useEffect(() => {
     setEmailLogs(getEmailLogs());
   }, [submissionsList]);
+
+  // Sync submissions and contact messages lists when navigating in Admin
+  useEffect(() => {
+    if (currentPath.startsWith('/admin')) {
+      setSubmissionsList(getSubmissions());
+      setContactMessagesList(getContactMessages());
+    }
+  }, [currentPath]);
 
   // Form submit handler
   const handleFormSubmission = (payload: any) => {
@@ -192,13 +210,14 @@ export default function App() {
     if (confirm(lang === 'ar' ? 'هل أنت متأكد من إعادة ضبط كل البيانات والطلبات الافتراضية؟' : 'Are you sure you want to reset all data changes?')) {
       clearAllSubmissionsAndSetDefaults();
       setSubmissionsList(getSubmissions());
+      setContactMessagesList(getContactMessages());
       navigate('/admin/dashboard');
     }
   };
 
   // Redirect gate: If on admin private pages but unauthenticated, fallback to Login
   useEffect(() => {
-    if (['/admin/dashboard', '/admin/submissions', '/admin/settings'].includes(currentPath) && !isAdminAuthenticated) {
+    if (['/admin/dashboard', '/admin/submissions', '/admin/messages', '/admin/settings'].includes(currentPath) && !isAdminAuthenticated) {
       navigate('/admin/login');
     }
   }, [currentPath, isAdminAuthenticated]);
@@ -207,6 +226,7 @@ export default function App() {
 
   // Count columns helper
   const countNewSubmissions = submissionsList.filter(s => s.status === 'new').length;
+  const countUnreadContactMessages = contactMessagesList.filter(m => !m.is_read).length;
 
   // --- RENDER ROUTING DECISIONS ---
 
@@ -259,64 +279,24 @@ export default function App() {
     }
 
     // 4. Admin Authenticated views (Layout includes Sidebar + Canvas content)
-    if (['/admin/dashboard', '/admin/submissions', '/admin/settings'].includes(currentPath)) {
+    if (['/admin/dashboard', '/admin/submissions', '/admin/messages', '/admin/settings'].includes(currentPath)) {
       return (
         <div 
-          className="flex-1 w-full flex flex-col md:flex-row transition-colors bg-[#0E5F7A] text-white font-ar"
+          className="flex-1 w-full flex flex-col md:flex-row transition-colors bg-[var(--primary-bg)] text-white font-ar"
           id="admin-dashboard-root-layout"
         >
           {/* Side panel menu */}
           <aside 
-            className="w-full md:w-[252px] border-e border-white/8 shrink-0 flex flex-col bg-[#083D52]"
+            className="w-full md:w-[200px] lg:w-[252px] border-e border-white/8 shrink-0 flex flex-col bg-[var(--sidebar-bg)]"
             id="admin-sidebar"
           >
             {/* Sidebar logo header */}
-            <div className="p-6 border-b border-white/8 flex items-center gap-3 bg-transparent select-none" id="sidebar-logo-header">
-              <svg 
-                width="28" 
-                height="30" 
-                viewBox="0 0 130 140" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-                className="select-none bg-transparent"
-                id="sidebar-logo-lightbulb"
-              >
-                {/* Top spark */}
-                <line x1="65" y1="2" x2="65" y2="14" stroke="#F5C842" strokeWidth="3" strokeLinecap="round"/>
-                {/* Top-right spark */}
-                <line x1="96" y1="10" x2="88" y2="18" stroke="#F5C842" strokeWidth="3" strokeLinecap="round"/>
-                {/* Top-left spark */}
-                <line x1="34" y1="10" x2="42" y2="18" stroke="#F5C842" strokeWidth="3" strokeLinecap="round"/>
-                {/* Right spark */}
-                <line x1="112" y1="42" x2="100" y2="42" stroke="#F5C842" strokeWidth="3" strokeLinecap="round"/>
-                {/* Left spark */}
-                <line x1="18" y1="42" x2="30" y2="42" stroke="#F5C842" strokeWidth="3" strokeLinecap="round"/>
-
-                {/* Main bulb circle — large and clear */}
-                <circle cx="65" cy="52" r="32" stroke="#F5C842" strokeWidth="3" fill="none"/>
-
-                {/* Filament inside — wavy line like original */}
-                <path d="M50 52 C54 44, 58 60, 65 52 C72 44, 76 60, 80 52" 
-                      stroke="#F5C842" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-
-                {/* Left side of neck connecting bulb to base */}
-                <path d="M45 76 Q43 88 50 92" stroke="#F5C842" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                {/* Right side of neck */}
-                <path d="M85 76 Q87 88 80 92" stroke="#F5C842" strokeWidth="3" fill="none" strokeLinecap="round"/>
-
-                {/* Base lines (3 horizontal lines, getting shorter) */}
-                <line x1="50" y1="92" x2="80" y2="92" stroke="#F5C842" strokeWidth="3" strokeLinecap="round"/>
-                <line x1="53" y1="101" x2="77" y2="101" stroke="#F5C842" strokeWidth="3" strokeLinecap="round"/>
-                <line x1="56" y1="110" x2="74" y2="110" stroke="#F5C842" strokeWidth="3" strokeLinecap="round"/>
-              </svg>
-              <div className="flex flex-col text-right leading-none" id="sidebar-logo-text">
-                <span className="text-sm font-extrabold text-[#F5C842] tracking-tight block font-ar">{t.brandName}</span>
-                <span className="text-[9px] tracking-wider text-[#B0D4E0] font-bold block font-ar">{t.brandSubtitle}</span>
-              </div>
+            <div className="flex flex-col items-center justify-center select-none" style={{ background: 'transparent', border: 'none', padding: '16px 12px 0', boxShadow: 'none' }} id="sidebar-logo-header">
+              <Logo size="custom" style={{ width: 'clamp(100px, 15vw, 160px)', height: 'auto', display: 'block' }} />
             </div>
 
             {/* Menu options stack */}
-            <nav className="flex-1 space-y-1" style={{ padding: '24px 0' }} id="sidebar-menus-stack">
+            <nav className="flex-1 space-y-1" style={{ padding: '12px 0 24px' }} id="sidebar-menus-stack">
               {/* Menu Item 1: Dashboard */}
               <button
                 onClick={() => navigate('/admin/dashboard')}
@@ -368,6 +348,35 @@ export default function App() {
                 )}
               </button>
 
+              {/* Menu Item 2.5: Messages (الرسائل) */}
+              <button
+                onClick={() => navigate('/admin/messages')}
+                className={`flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                  currentPath === '/admin/messages'
+                    ? 'bg-[rgba(245,200,66,0.1)] border-r-[3px] border-r-[#F5C842] text-[#F5C842]'
+                    : 'text-[#B0D4E0] hover:text-white bg-transparent'
+                }`}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  margin: '4px 12px',
+                  width: 'calc(100% - 24px)',
+                }}
+                id="menu-btn-messages"
+              >
+                <div className="flex items-center gap-2.5 font-ar">
+                  <Send className="w-4 h-4" />
+                  <span>{t.nav_messages}</span>
+                </div>
+
+                {/* Badge indicator */}
+                {countUnreadContactMessages > 0 && (
+                  <span className="px-2 py-0.5 bg-[#EF4444] text-white text-[10px] font-num rounded-full animate-pulse font-bold" id="sidebar-messages-coral-badge">
+                    {countUnreadContactMessages}
+                  </span>
+                )}
+              </button>
+
               {/* Menu Item 3: Settings (الاعدادات) */}
               <button
                 onClick={() => navigate('/admin/settings')}
@@ -406,7 +415,7 @@ export default function App() {
           </aside>
 
           {/* Core Panel Content Canvas */}
-          <main className="flex-1 p-6 overflow-y-auto bg-[#0E5F7A] text-white" id="admin-main-canvas">
+          <main className="flex-1 p-6 overflow-y-auto bg-[var(--primary-bg)] text-white" id="admin-main-canvas">
             {/* Top Area header */}
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/8 pb-5" id="canvas-header">
               <div id="canvas-header-welcome">
@@ -415,24 +424,28 @@ export default function App() {
                     ? t.nav_dashboard 
                     : currentPath === '/admin/submissions' 
                       ? t.nav_submissions 
-                      : t.nav_settings}
+                      : currentPath === '/admin/messages'
+                        ? t.nav_messages
+                        : t.nav_settings}
                 </h3>
-                <p className="text-xs text-[#B0D4E0] font-ar mt-0.5">
+                <p className="text-xs text-[var(--secondary-text)] font-ar mt-0.5">
                   {currentPath === '/admin/dashboard' 
                     ? (lang === 'ar' ? 'رصد بالوقت الفعلي لأداء ومقاييس الأفكار الابتكارية' : 'Real-time monitoring of innovation statistics and evaluations')
                     : currentPath === '/admin/submissions'
                       ? (lang === 'ar' ? 'قائمة وتفاصيل الأفكار المقدمة من رواد الأعمال للمراجعة' : 'Complete details of startup submissions waiting for grading')
-                      : (lang === 'ar' ? 'إدارة وتخصيص تفضيلات الحساب والمظهر العام ونظام العرض' : 'Manage account security, styling preferences, and core system indices')
+                      : currentPath === '/admin/messages'
+                        ? (lang === 'ar' ? 'قائمة وتفاصيل رسائل البريد المرسلة واستفسارات نموذج اتصل بنا' : 'Full history logs of outbox emails and incoming guest contact inquiries')
+                        : (lang === 'ar' ? 'إدارة وتخصيص تفضيلات الحساب والمظهر العام ونظام العرض' : 'Manage account security, styling preferences, and core system indices')
                   }
                 </p>
               </div>
 
               {/* Quick statistics badge & Sign out to the top left */}
               <div className="flex items-center gap-2.5 font-num" id="canvas-header-indicators">
-                <span className="px-3 py-1.5 bg-[#0A4F68] text-white font-bold text-xs rounded-full inline-block border border-white/8 shadow-md">
+                <span className="px-3 py-1.5 bg-[var(--card-bg)] text-white font-bold text-xs rounded-full inline-block border border-white/8 shadow-md">
                   {lang === 'ar' ? `إجمالي الأفكار: ${submissionsList.length}` : `All Ideas: ${submissionsList.length}`}
                 </span>
-                <span className="px-3 py-1.5 bg-[#0A4F68] text-[#F5C842] font-bold text-xs rounded-full inline-block border border-[#F5C842]/20 shadow-md">
+                <span className="px-3 py-1.5 bg-[var(--card-bg)] text-[var(--accent-gold)] font-bold text-xs rounded-full inline-block border border-[var(--accent-gold)]/20 shadow-md">
                   {lang === 'ar' ? `المشاريع الواعدة: ${submissionsList.filter(s => s.status === 'promising').length}` : `Promising: ${submissionsList.filter(s => s.status === 'promising').length}`}
                 </span>
 
@@ -462,6 +475,10 @@ export default function App() {
                 submissions={submissionsList}
                 onUpdateAdminFields={handleUpdateEvaluation}
               />
+            ) : currentPath === '/admin/messages' ? (
+              <AdminMessages 
+                lang={lang}
+              />
             ) : (
               <AdminSettings 
                 lang={lang}
@@ -480,26 +497,49 @@ export default function App() {
       );
     }
 
+    if (currentPath === '/about') {
+      return <AboutPage lang={lang} />;
+    }
+
+    if (currentPath === '/faq') {
+      return <FAQPage lang={lang} />;
+    }
+
+    if (currentPath === '/contact') {
+      return <ContactPage lang={lang} />;
+    }
+
+    if (currentPath === '/privacy') {
+      return <DocsPage lang={lang} mode="privacy" />;
+    }
+
+    if (currentPath === '/terms') {
+      return <DocsPage lang={lang} mode="terms" />;
+    }
+
     // Default: Landing Screen
     return (
-      <LandingHero 
-        lang={lang}
-        submissionsCount={submissionsList.length}
-        onStart={() => navigate('/submit')}
-      />
+      <div className="flex flex-col w-full animate-fade-in" id="landing-page-flow">
+        <LandingHero 
+          lang={lang}
+          submissionsCount={submissionsList.length}
+          onStart={() => navigate('/submit')}
+        />
+        <AboutUs lang={lang} />
+      </div>
     );
   };
 
   // --- GENERAL APP FRAME LAYOUT ---
 
   // For landing page & submission & login routes, display the teal gradient full backdrop
-  const showTealGradientBackdrop = ['/', '/submit', '/submit-success', '/admin/login'].includes(currentPath);
+  const showTealGradientBackdrop = ['/', '/about', '/faq', '/contact', '/privacy', '/terms', '/submit', '/submit-success', '/admin/login'].includes(currentPath);
 
   return (
     <div 
       className={`min-h-screen w-full flex flex-col relative ${
         showTealGradientBackdrop 
-          ? 'bg-gradient-to-br from-[#1a7a6e] to-[#2a9d8f] overflow-x-hidden' 
+          ? 'bg-gradient-to-br from-[var(--primary-bg)] to-[var(--sidebar-bg)] overflow-x-hidden' 
           : 'bg-white'
       }`}
       id="app-full-viewport"
@@ -517,6 +557,11 @@ export default function App() {
 
       {/* 2. Core Content Page Renderer */}
       {renderContent()}
+
+      {/* Global Footer for public pages */}
+      {showTealGradientBackdrop && currentPath !== '/admin/login' && (
+        <Footer lang={lang} onNavigate={navigate} />
+      )}
 
       {/* 3. SIMULATED RESEND OUTGOING EMAIL DISPATCHES HUD LOGGER PANEL (COLLAPSIBLE FLOATING TRAY) */}
       {currentPath !== '/' && (
