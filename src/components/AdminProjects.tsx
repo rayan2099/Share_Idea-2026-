@@ -328,7 +328,6 @@ export default function AdminProjects({ lang }: AdminProjectsProps) {
                 <th className="p-4 w-[80px]">{isAr ? 'الصورة' : 'Thumbnail'}</th>
                 <th className="p-4 text-right">{isAr ? 'اسم المشروع' : 'Project Title'}</th>
                 <th className="p-4 text-right">{isAr ? 'القطاع' : 'Sector'}</th>
-                <th className="p-4 text-right">{isAr ? 'المرحلة' : 'Stage'}</th>
                 <th className="p-4 text-center">{isAr ? 'مرئي' : 'Visible'}</th>
                 <th className="p-4 text-center w-[120px]">{isAr ? 'إجراءات' : 'Actions'}</th>
               </tr>
@@ -366,17 +365,6 @@ export default function AdminProjects({ lang }: AdminProjectsProps) {
                     {project.sector ? (
                       <span className="px-2.5 py-1 bg-[#F5C842]/10 text-[#F5C842] border border-[#F5C842]/20 rounded-full font-bold text-[10px]">
                         {project.sector}
-                      </span>
-                    ) : (
-                      <span className="text-white/30 text-[10px]">-</span>
-                    )}
-                  </td>
-
-                  {/* Stage Badge */}
-                  <td className="p-4 align-middle font-ar">
-                    {project.stage ? (
-                      <span className="px-2.5 py-1 bg-white/5 text-white/80 border border-white/10 rounded-full font-bold text-[10px]">
-                        {project.stage}
                       </span>
                     ) : (
                       <span className="text-white/30 text-[10px]">-</span>
@@ -507,35 +495,18 @@ export default function AdminProjects({ lang }: AdminProjectsProps) {
                   />
                 </div>
 
-                {/* Grid Inputs sector + stage */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Sector */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-[var(--secondary-text)]">
-                      {isAr ? 'القطاع' : 'Sector / Index'}
-                    </label>
-                    <input
-                      type="text"
-                      value={sector}
-                      onChange={e => setSector(e.target.value)}
-                      className="w-full bg-[#051c24] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F5C842]/50 font-ar"
-                      placeholder={isAr ? 'مثال: التكنولوجيا المالية' : 'e.g., FinTech'}
-                    />
-                  </div>
-
-                  {/* Stage / Phase */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-[var(--secondary-text)]">
-                      {isAr ? 'المرحلة' : 'Stage / Maturity'}
-                    </label>
-                    <input
-                      type="text"
-                      value={stage}
-                      onChange={e => setStage(e.target.value)}
-                      className="w-full bg-[#051c24] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F5C842]/50 font-ar"
-                      placeholder={isAr ? 'مثال: نموذج أولي، مرحلة نمو' : 'e.g., MVP, Early Stage'}
-                    />
-                  </div>
+                {/* Sector */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-[var(--secondary-text)]">
+                    {isAr ? 'القطاع' : 'Sector / Index'}
+                  </label>
+                  <input
+                    type="text"
+                    value={sector}
+                    onChange={e => setSector(e.target.value)}
+                    className="w-full bg-[#051c24] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F5C842]/50 font-ar"
+                    placeholder={isAr ? 'مثال: التكنولوجيا المالية' : 'e.g., FinTech'}
+                  />
                 </div>
 
                 {/* Website Url link */}

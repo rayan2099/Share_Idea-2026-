@@ -267,11 +267,6 @@ export default function ProjectsCarousel({ lang }: ProjectsCarouselProps) {
                                 {project.sector}
                               </span>
                             )}
-                            {project.stage && (
-                              <span className="px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white/90 border border-white/10 rounded-full font-bold text-[9px] font-ar">
-                                {project.stage}
-                              </span>
-                            )}
                           </div>
                         </div>
 
