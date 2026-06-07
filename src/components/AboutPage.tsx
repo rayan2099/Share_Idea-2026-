@@ -18,7 +18,7 @@ export default function AboutPage({ lang }: AboutPageProps) {
   const content = {
     title: isAr ? 'من نحن' : 'About Us',
     body1: isAr 
-      ? 'شير فكرة منصة متخصصة في استقبال وتقييم الأفكار والمشاريع الناشئة وربطها بالمستثمرين والشركاء الاستراتيجيين. نهدف إلى تمكين رواد الأعمال من عرض أفكارهم بشكل احترافي، والحصول على تقييمات ورؤى تساعدهم على تطوير مشاريعهم وتسريع دخولها إلى السوق وتحقيق النمو المستدام.'
+      ? 'شارك الفكرة هي منصة متخصصة في استقبال وتقييم الأفكار والمشاريع الناشئة وربطها بالمستثمرين والشركاء الاستراتيجيين. نهدف إلى تمكين رواد الأعمال من عرض أفكارهم بشكل احترافي، والحصول على تقييمات ورؤى تساعدهم على تطوير مشاريعهم وتسريع دخولها إلى السوق وتحقيق النمو المستدام.'
       : 'Share Idea is a specialized platform for receiving and evaluating early-stage startup ideas and connecting them with strategic investors and partners. We aim to empower entrepreneurs to showcase their ideas professionally, receiving scores and insights that help them develop their projects, accelerate market entry, and achieve sustainable growth.',
     body2: isAr
       ? 'تعمل المنصة على اكتشاف المشاريع الواعدة وربطها بالجهات المناسبة من مستثمرين وشركاء ومسرعات أعمال وحاضنات أعمال، بهدف دعم النمو، وتسهيل التمويل، وتسريع الوصول إلى السوق.'

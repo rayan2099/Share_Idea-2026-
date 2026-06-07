@@ -44,16 +44,7 @@ export default function LandingHero({ lang, onStart, submissionsCount = 500 }: L
         id="hero-content-group"
       >
         {/* Logo */}
-        <img
-          src="/logo.png"
-          alt="Share idea"
-          style={{
-            width: 'clamp(180px, 25vw, 260px)',
-            display: 'block',
-            marginBottom: '20px',
-          }}
-          className="select-none"
-        />
+        <Logo size="lg" className="select-none mb-5" />
 
         {/* Headline */}
         <h1 

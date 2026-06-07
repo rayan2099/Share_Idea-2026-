@@ -9,9 +9,9 @@ interface FAQPageProps {
 interface FAQItem {
   id: number;
   q_ar: string;
-  a_ar: string;
+  a_ar: React.ReactNode;
   q_en: string;
-  a_en: string;
+  a_en: React.ReactNode;
 }
 
 export default function FAQPage({ lang }: FAQPageProps) {
@@ -64,9 +64,57 @@ export default function FAQPage({ lang }: FAQPageProps) {
     {
       id: 6,
       q_ar: 'هل معلوماتي ومشروعي سرية؟',
-      a_ar: 'يتم التعامل مع المعلومات وفق سياسات الخصوصية والأمان المعتمدة في المنصة الإلكترونية لحماية سرية ابتكاراتك.',
+      a_ar: (
+        <div className="space-y-4">
+          <p>
+            نعم، نولي سرية الأفكار والمشاريع أهمية قصوى. جميع المعلومات التي تقوم بمشاركتها عبر منصة شارك الفكرة يتم التعامل معها بأعلى درجات السرية والخصوصية، ولا يتم نشرها أو مشاركتها مع أي طرف خارجي دون موافقتك أو وفقًا للأنظمة والسياسات المعتمدة.
+          </p>
+          <p>
+            كما نلتزم بتطبيق إجراءات تقنية وتنظيمية تهدف إلى حماية بيانات المستخدمين والمشاريع من الوصول غير المصرح به، وتشمل:
+          </p>
+          <ul className="list-disc list-inside space-y-1.5 pr-2">
+            <li>تخزين البيانات بشكل آمن داخل أنظمة محمية.</li>
+            <li>تقييد الوصول إلى معلومات المشاريع على الأشخاص المخولين فقط.</li>
+            <li>استخدام بروتوكولات أمان حديثة لحماية البيانات أثناء الإرسال والتخزين.</li>
+            <li>مراقبة الأنظمة بشكل مستمر للكشف عن أي محاولات وصول غير مصرح بها.</li>
+          </ul>
+          <p>
+            ونؤكد أن ملكية الفكرة أو المشروع تبقى لصاحبها بالكامل، وأن تقديم الفكرة عبر المنصة لا يمنح أي طرف آخر أي حقوق ملكية فكرية عليها.
+          </p>
+          <p>
+            هدف المنصة هو مساعدة رواد الأعمال على تطوير مشاريعهم وربطهم بالفرص المناسبة، مع الحفاظ على سرية المعلومات واحترام حقوق الملكية الفكرية لأصحاب الأفكار.
+          </p>
+          <p className="text-xs text-[#F5C842]/90 border-t border-white/5 pt-3 mt-3">
+            <strong>ملاحظة:</strong> في حال احتاج المشروع إلى عرضه على مستثمر أو جهة شريكة مستقبلًا، فلن يتم ذلك إلا ضمن الإجراءات والضوابط المعتمدة من المنصة وبما يتوافق مع مصلحة صاحب المشروع.
+          </p>
+        </div>
+      ),
       q_en: 'Are my project information and details confidential?',
-      a_en: 'All data is strictly processed according to certified privacy and confidentiality guidelines, securing your proprietary innovations.',
+      a_en: (
+        <div className="space-y-4">
+          <p>
+            Yes, we attach the utmost importance to the confidentiality of ideas and projects. All information you share through the Share Idea platform is handled with the highest levels of confidentiality and privacy, and is never published or shared with any external party without your consent or in accordance with approved regulations and policies.
+          </p>
+          <p>
+            We are also committed to implementing technical and organizational measures aimed at protecting user and project data from unauthorized access, including:
+          </p>
+          <ul className="list-disc list-inside space-y-1.5 pl-2">
+            <li>Securely storing data within protected systems.</li>
+            <li>Restricting access to project information to authorized personnel only.</li>
+            <li>Using modern security protocols to protect data during transmission and storage.</li>
+            <li>Continuous monitoring of systems to detect any unauthorized access attempts.</li>
+          </ul>
+          <p>
+            We stress that the ownership of the idea or project remains entirely with its owner, and that submitting the idea through the platform does not grant any other party any intellectual property rights over it.
+          </p>
+          <p>
+            The platform's goal is to help entrepreneurs develop their projects and connect them with the right opportunities, while maintaining confidentiality of information and respecting the intellectual property rights of idea owners.
+          </p>
+          <p className="text-xs text-[#F5C842]/90 border-t border-white/5 pt-3 mt-3">
+            <strong>Note:</strong> In the event that the project needs to be presented to an investor or a partner in the future, this will only be done within the approved procedures and controls of the platform and in line with the interests of the project owner.
+          </p>
+        </div>
+      ),
     },
   ];
 
@@ -135,7 +183,7 @@ export default function FAQPage({ lang }: FAQPageProps) {
                 <div 
                   className="transition-all duration-300 ease-in-out overflow-hidden"
                   style={{
-                    maxHeight: isOpen ? '200px' : '0',
+                    maxHeight: isOpen ? '1000px' : '0',
                     opacity: isOpen ? 1 : 0,
                   }}
                   id={`faq-animated-drawer-${item.id}`}

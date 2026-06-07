@@ -292,7 +292,7 @@ export default function App() {
           >
             {/* Sidebar logo header */}
             <div className="flex flex-col items-center justify-center select-none" style={{ background: 'transparent', border: 'none', padding: '16px 12px 0', boxShadow: 'none' }} id="sidebar-logo-header">
-              <Logo size="custom" style={{ width: 'clamp(100px, 15vw, 160px)', height: 'auto', display: 'block' }} />
+              <Logo size="md" />
             </div>
 
             {/* Menu options stack */}

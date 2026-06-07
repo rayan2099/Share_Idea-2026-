@@ -37,7 +37,7 @@ export default function AboutUs({ lang }: AboutUsProps) {
       ? 'شارك الفكرة منصة ريادية متخصصة في استقبال أفكار المشاريع وتقييمها، نؤمن بأن كل فكرة عظيمة تستحق أن تُسمع وأن تجد طريقها إلى الواقع. نعمل على ربط رواد الأعمال بالمستثمرين والشركاء الاستراتيجيين لتحويل الأفكار إلى مشاريع ناجحة.'
       : 'Share Idea is a pioneering platform specialized in receiving and evaluating project ideas. We believe that every great idea deserves to be heard and find its way to reality. We connect entrepreneurs with investors and strategic partners to transform ideas into successful projects.',
     
-    visionTitleParent: isAr ? 'الرؤية والرسالة' : 'Vision & Mission',
+    visionTitleParent: isAr ? 'الرؤية و الرسالة' : 'Vision & Mission',
     visionTitle: isAr ? 'رؤيتنا' : 'Our Vision',
     visionBody: isAr
       ? 'أن نكون المنصة الرائدة في المنطقة العربية لاكتشاف ودعم الأفكار الريادية وتمكين أصحابها من بناء مشاريع تُحدث أثراً حقيقياً في المجتمع والاقتصاد.'

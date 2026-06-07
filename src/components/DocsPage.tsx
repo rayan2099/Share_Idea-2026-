@@ -117,7 +117,7 @@ export default function DocsPage({ lang, mode }: DocsPageProps) {
                   <section className="space-y-2">
                     <h3 className="text-lg font-bold text-[#F5C842]">1. القبول والالتزام بالشروط</h3>
                     <p>
-                      باستخدامك لمنصة "شير فكرة"، فإنك تقر وتوافق بالكامل على الشروط والأحكام المطبقة هنا، وعلى سياسات استقبال وتقييم الأفكار المعروضة لتطوير ريادة الأعمال.
+                      باستخدامك لمنصة "شارك الفكرة"، فإنك تقر وتوافق بالكامل على الشروط والأحكام المطبقة هنا، وعلى سياسات استقبال وتقييم الأفكار المعروضة لتطوير ريادة الأعمال.
                     </p>
                   </section>
                   <section className="space-y-2">
@@ -168,7 +168,7 @@ export default function DocsPage({ lang, mode }: DocsPageProps) {
         {/* Action Button to return home */}
         <div className="text-center mt-2 pb-6">
           <span className="text-sm text-[#B0D4E0]/80">
-            {isAr ? 'شير فكرة - تمكين الابتكار الريادي' : 'Share Idea - Empowering Innovation'}
+            {isAr ? 'شارك الفكرة - تمكين الابتكار الريادي' : 'Share Idea - Empowering Innovation'}
           </span>
         </div>
       </div>

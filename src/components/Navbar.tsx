@@ -41,9 +41,9 @@ export default function Navbar({ lang, onToggleLang, currentPath, onNavigate }: 
         className="flex items-center cursor-pointer select-none" 
         onClick={() => handleNavClick('/')}
         id="navbar-logo-container"
-        style={{ background: 'transparent', border: 'none', padding: 0 }}
+        style={{ background: 'transparent', border: 'none', padding: 0, transform: 'translateY(10px)' }}
       >
-        <Logo size="custom" style={{ width: 'clamp(90px, 14vw, 135px)', display: 'block' }} />
+        <Logo size="sm" />
       </div>
 
       {/* 2. Desktop Navigation Center Links (View hidden on Mobile) */}
