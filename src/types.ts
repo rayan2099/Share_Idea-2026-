@@ -64,3 +64,18 @@ export interface ContactMessage {
   is_read: boolean;
 }
 
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  sector?: string | null;
+  stage?: string | null;
+  image_url?: string | null;
+  website_url?: string | null;
+  is_visible: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+

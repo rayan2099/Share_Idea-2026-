@@ -7,6 +7,7 @@ import React from 'react';
 import { Language } from '../types';
 import { translations } from '../translations';
 import { Logo } from './Logo';
+import { motion } from 'motion/react';
 
 interface LandingHeroProps {
   lang: Language;
@@ -44,23 +45,34 @@ export default function LandingHero({ lang, onStart, submissionsCount = 500 }: L
         id="hero-content-group"
       >
         {/* Logo */}
-        <Logo size="lg" className="select-none mb-5" />
+        <Logo size="lg" className="select-none mb-8" />
 
         {/* Headline */}
-        <h1 
+        <motion.h1 
+          animate={{
+            scale: [1, 1.03, 1],
+          }}
+          transition={{
+            duration: 2.6,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
           style={{
-            margin: '0 0 16px 0',
+            margin: '16px 0 28px 0',
             fontSize: 'clamp(32px, 5vw, 56px)',
             fontWeight: '800',
             color: '#FFFFFF',
             fontFamily: 'Tajawal, sans-serif',
-            lineHeight: '1.3',
+            lineHeight: '1.4',
             whiteSpace: 'nowrap',
+            letterSpacing: '0.02em',
+            wordSpacing: '0.15em',
+            display: 'inline-block',
           }}
           id="hero-title-text"
         >
           {t.heroTitle}
-        </h1>
+        </motion.h1>
 
         {/* Subtitle */}
         <p 

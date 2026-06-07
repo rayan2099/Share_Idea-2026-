@@ -18,7 +18,8 @@ import {
   Sparkles,
   Globe,
   X,
-  Settings
+  Settings,
+  Building2
 } from 'lucide-react';
 import { Language, Submission, SubmissionStatus } from './types';
 import { translations } from './translations';
@@ -44,6 +45,8 @@ import AdminDashboard from './components/AdminDashboard';
 import AdminSubmissions from './components/AdminSubmissions';
 import AdminMessages from './components/AdminMessages';
 import AdminSettings from './components/AdminSettings';
+import AdminProjects from './components/AdminProjects';
+import ProjectsCarousel from './components/ProjectsCarousel';
 import AboutPage from './components/AboutPage';
 import FAQPage from './components/FAQPage';
 import ContactPage from './components/ContactPage';
@@ -217,7 +220,7 @@ export default function App() {
 
   // Redirect gate: If on admin private pages but unauthenticated, fallback to Login
   useEffect(() => {
-    if (['/admin/dashboard', '/admin/submissions', '/admin/messages', '/admin/settings'].includes(currentPath) && !isAdminAuthenticated) {
+    if (['/admin/dashboard', '/admin/submissions', '/admin/messages', '/admin/settings', '/admin/projects'].includes(currentPath) && !isAdminAuthenticated) {
       navigate('/admin/login');
     }
   }, [currentPath, isAdminAuthenticated]);
@@ -279,7 +282,7 @@ export default function App() {
     }
 
     // 4. Admin Authenticated views (Layout includes Sidebar + Canvas content)
-    if (['/admin/dashboard', '/admin/submissions', '/admin/messages', '/admin/settings'].includes(currentPath)) {
+    if (['/admin/dashboard', '/admin/submissions', '/admin/messages', '/admin/settings', '/admin/projects'].includes(currentPath)) {
       return (
         <div 
           className="flex-1 w-full flex flex-col md:flex-row transition-colors bg-[var(--primary-bg)] text-white font-ar"
@@ -377,6 +380,28 @@ export default function App() {
                 )}
               </button>
 
+              {/* Menu Item 2.7: Projects (مشاريعنا) */}
+              <button
+                onClick={() => navigate('/admin/projects')}
+                className={`flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                  currentPath === '/admin/projects'
+                    ? 'bg-[rgba(245,200,66,0.1)] border-r-[3px] border-r-[#F5C842] text-[#F5C842]'
+                    : 'text-[#B0D4E0] hover:text-white bg-transparent'
+                }`}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  margin: '4px 12px',
+                  width: 'calc(100% - 24px)',
+                }}
+                id="menu-btn-projects"
+              >
+                <div className="flex items-center gap-2.5 font-ar">
+                  <span className="text-base select-none">🏢</span>
+                  <span>{t.nav_projects}</span>
+                </div>
+              </button>
+
               {/* Menu Item 3: Settings (الاعدادات) */}
               <button
                 onClick={() => navigate('/admin/settings')}
@@ -426,7 +451,9 @@ export default function App() {
                       ? t.nav_submissions 
                       : currentPath === '/admin/messages'
                         ? t.nav_messages
-                        : t.nav_settings}
+                        : currentPath === '/admin/projects'
+                          ? t.nav_projects
+                          : t.nav_settings}
                 </h3>
                 <p className="text-xs text-[var(--secondary-text)] font-ar mt-0.5">
                   {currentPath === '/admin/dashboard' 
@@ -435,7 +462,9 @@ export default function App() {
                       ? (lang === 'ar' ? 'قائمة وتفاصيل الأفكار المقدمة من رواد الأعمال للمراجعة' : 'Complete details of startup submissions waiting for grading')
                       : currentPath === '/admin/messages'
                         ? (lang === 'ar' ? 'قائمة وتفاصيل رسائل البريد المرسلة واستفسارات نموذج اتصل بنا' : 'Full history logs of outbox emails and incoming guest contact inquiries')
-                        : (lang === 'ar' ? 'إدارة وتخصيص تفضيلات الحساب والمظهر العام ونظام العرض' : 'Manage account security, styling preferences, and core system indices')
+                        : currentPath === '/admin/projects'
+                          ? (lang === 'ar' ? 'إدارة وتصنيف وأرشفة المشاريع والكيانات المستفيدة من المنصة' : 'Manage, categorize and display all projects featured on the homepage')
+                          : (lang === 'ar' ? 'إدارة وتخصيص تفضيلات الحساب والمظهر العام ونظام العرض' : 'Manage account security, styling preferences, and core system indices')
                   }
                 </p>
               </div>
@@ -477,6 +506,10 @@ export default function App() {
               />
             ) : currentPath === '/admin/messages' ? (
               <AdminMessages 
+                lang={lang}
+              />
+            ) : currentPath === '/admin/projects' ? (
+              <AdminProjects 
                 lang={lang}
               />
             ) : (
@@ -525,6 +558,7 @@ export default function App() {
           submissionsCount={submissionsList.length}
           onStart={() => navigate('/submit')}
         />
+        <ProjectsCarousel lang={lang} />
         <AboutUs lang={lang} />
       </div>
     );
