@@ -43,6 +43,7 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
   const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [readUpdateError, setReadUpdateError] = useState('');
 
   // Helper to format date/time beautifully
   const formatDate = (dateStr: string) => {
@@ -91,10 +92,15 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
 
   // Update read status for contact messages
   const handleToggleReadStatus = async (id: string, currentRead: boolean) => {
-    await markContactMessageAsReadInSupabase(id, !currentRead);
-    setContactMessages(await getContactMessagesFromSupabase());
-    if (selectedMessage && selectedMessage.id === id) {
-      setSelectedMessage(prev => prev ? { ...prev, is_read: !currentRead } : null);
+    setReadUpdateError('');
+    try {
+      await markContactMessageAsReadInSupabase(id, !currentRead);
+      const freshMessages = await getContactMessagesFromSupabase();
+      setContactMessages(freshMessages);
+      setSelectedMessage(freshMessages.find(msg => msg.id === id) || null);
+    } catch (error) {
+      console.error('Unable to update message read status:', error);
+      setReadUpdateError(isAr ? 'تعذر تحديث حالة الرسالة في قاعدة البيانات.' : 'Could not update the message status in the database.');
     }
   };
 
@@ -300,6 +306,13 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
                     }
                   </button>
                 </div>
+
+                {readUpdateError && (
+                  <div className="mb-3 flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-bold text-rose-300 font-ar">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span>{readUpdateError}</span>
+                  </div>
+                )}
 
                 <h3 className="text-base font-extrabold text-white mb-2 font-ar leading-snug">
                   {selectedMessage.subject}

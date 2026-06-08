@@ -796,8 +796,8 @@ export async function markContactMessageAsReadInSupabase(id: string, isRead: boo
     .eq('id', id);
 
   if (error) {
-    console.warn('Supabase message read update failed, using local fallback:', error.message);
-    markContactMessageAsRead(id, isRead);
+    console.error('Supabase message read update failed:', error);
+    throw new Error(error.message);
   }
 }
 
