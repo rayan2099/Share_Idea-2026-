@@ -790,10 +790,10 @@ export async function createContactMessageInSupabase(contact: { name: string; em
 }
 
 export async function markContactMessageAsReadInSupabase(id: string, isRead: boolean): Promise<void> {
-  const { error } = await supabase
-    .from('messages')
-    .update({ is_read: isRead })
-    .eq('id', id);
+  const { error } = await supabase.rpc('set_message_read_status', {
+    message_id: id,
+    read_status: isRead
+  });
 
   if (error) {
     console.error('Supabase message read update failed:', error);
