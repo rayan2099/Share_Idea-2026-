@@ -825,27 +825,29 @@ export async function getSubmissionsFromSupabase(): Promise<Submission[]> {
 export async function createSubmissionInSupabase(
   newSub: Omit<Submission, 'id' | 'reference_id' | 'created_at' | 'status' | 'score' | 'admin_notes' | 'email_sent'> & Record<string, any>
 ): Promise<Submission> {
+  const createdAt = new Date().toISOString();
   const payload = {
     ...newSub,
+    id: crypto.randomUUID(),
     reference_id: generateReferenceId(),
     status: 'new' as SubmissionStatus,
     score: null,
     admin_notes: '',
-    email_sent: false
+    email_sent: false,
+    created_at: createdAt,
+    updated_at: createdAt
   };
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('submissions')
-    .insert(payload)
-    .select()
-    .single();
+    .insert(payload);
 
   if (error) {
     console.error('Supabase submission insert failed:', error);
     throw new Error(error.message);
   }
 
-  return data as Submission;
+  return payload as Submission;
 }
 
 export async function updateSubmissionAdminFieldsInSupabase(
