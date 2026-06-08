@@ -31,6 +31,7 @@ import {
   getEmailLogs, 
   clearAllSubmissionsAndSetDefaults,
   getContactMessages,
+  getContactMessagesFromSupabase,
   initDataStore,
   EmailLog 
 } from './dataStore';
@@ -238,7 +239,7 @@ export default function App() {
   useEffect(() => {
     if (currentPath.startsWith('/admin') || currentPath === '/') {
       getSubmissionsFromSupabase().then(setSubmissionsList);
-      setContactMessagesList(getContactMessages());
+      getContactMessagesFromSupabase().then(setContactMessagesList);
     }
   }, [currentPath]);
 
@@ -270,7 +271,7 @@ export default function App() {
     if (confirm(lang === 'ar' ? 'هل أنت متأكد من إعادة ضبط كل البيانات والطلبات الافتراضية؟' : 'Are you sure you want to reset all data changes?')) {
       clearAllSubmissionsAndSetDefaults();
       setSubmissionsList(getSubmissions());
-      setContactMessagesList(getContactMessages());
+      getContactMessagesFromSupabase().then(setContactMessagesList);
       navigate('/admin/dashboard');
     }
   };

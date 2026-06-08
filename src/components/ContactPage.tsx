@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Phone, Mail, Send, CheckCircle2 } from 'lucide-react';
 import { Language } from '../types';
-import { createContactMessage } from '../dataStore';
+import { createContactMessageInSupabase } from '../dataStore';
 
 interface ContactPageProps {
   lang: Language;
@@ -17,6 +17,7 @@ export default function ContactPage({ lang }: ContactPageProps) {
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -30,22 +31,31 @@ export default function ContactPage({ lang }: ContactPageProps) {
     setFormState(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formState.name.trim() || !formState.email.trim() || !formState.subject.trim() || !formState.message.trim()) {
       setSubmitError(isAr ? 'برجاء ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
       return;
     }
     setSubmitError('');
-    setIsSubmitted(true);
-    // Persist mock contact message locally
-    createContactMessage({
-      name: formState.name,
-      email: formState.email,
-      subject: formState.subject,
-      message: formState.message
-    });
-    console.log('Contact message submitted:', formState);
+    setIsSubmitting(true);
+
+    try {
+      await createContactMessageInSupabase({
+        name: formState.name,
+        email: formState.email,
+        subject: formState.subject,
+        message: formState.message
+      });
+      setIsSubmitted(true);
+    } catch (err: any) {
+      setSubmitError(isAr
+        ? `تعذر إرسال الرسالة: ${err.message || 'خطأ غير معروف'}`
+        : `Could not send your message: ${err.message || 'Unknown error'}`
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -241,11 +251,12 @@ export default function ContactPage({ lang }: ContactPageProps) {
                   {/* Submit Button */}
                   <button
                     type="submit"
+                    disabled={isSubmitting}
                     className="w-full py-3 bg-[#F5C842] hover:bg-[#ffda67] text-[#083D52] font-extrabold text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg mt-2 cursor-pointer active:scale-[0.98]"
                     id="btn-submit-contact-form"
                   >
                     <Send className="w-4 h-4" />
-                    <span>{isAr ? 'إرسال الرسالة الإلكترونية' : 'Submit My Message'}</span>
+                    <span>{isSubmitting ? (isAr ? 'جاري الإرسال...' : 'Sending...') : (isAr ? 'إرسال الرسالة الإلكترونية' : 'Submit My Message')}</span>
                   </button>
                 </form>
               )}

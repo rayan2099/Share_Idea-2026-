@@ -753,6 +753,54 @@ export function markContactMessageAsRead(id: string, isRead: boolean) {
   }
 }
 
+export async function getContactMessagesFromSupabase(): Promise<ContactMessage[]> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.warn('Supabase messages fetch failed, using local fallback:', error.message);
+    return getContactMessages();
+  }
+
+  return (data || []) as ContactMessage[];
+}
+
+export async function createContactMessageInSupabase(contact: { name: string; email: string; subject: string; message: string }): Promise<ContactMessage> {
+  const createdAt = new Date().toISOString();
+  const payload = {
+    ...contact,
+    id: crypto.randomUUID(),
+    is_read: false,
+    created_at: createdAt,
+    updated_at: createdAt
+  };
+
+  const { error } = await supabase
+    .from('messages')
+    .insert(payload);
+
+  if (error) {
+    console.error('Supabase contact message insert failed:', error);
+    throw new Error(error.message);
+  }
+
+  return payload as ContactMessage;
+}
+
+export async function markContactMessageAsReadInSupabase(id: string, isRead: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('messages')
+    .update({ is_read: isRead })
+    .eq('id', id);
+
+  if (error) {
+    console.warn('Supabase message read update failed, using local fallback:', error.message);
+    markContactMessageAsRead(id, isRead);
+  }
+}
+
 // Get all submissions
 export function getSubmissions(): Submission[] {
   if (typeof window === 'undefined') return DEFAULT_SUBMISSIONS;

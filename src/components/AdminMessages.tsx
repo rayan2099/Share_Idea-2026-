@@ -21,10 +21,9 @@ import { Language } from '../types';
 import { translations } from '../translations';
 import { 
   getEmailLogs, 
-  getContactMessages, 
-  markContactMessageAsRead,
+  getContactMessagesFromSupabase, 
+  markContactMessageAsReadInSupabase,
   EmailLog,
-  DEFAULT_CONTACT_MESSAGES
 } from '../dataStore';
 import { ContactMessage } from '../types';
 
@@ -76,13 +75,14 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
   };
 
   // Load message logs from data store
-  const loadData = () => {
+  const loadData = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    try {
       setEmailLogs(getEmailLogs());
-      setContactMessages(getContactMessages());
+      setContactMessages(await getContactMessagesFromSupabase());
+    } finally {
       setIsLoading(false);
-    }, 400);
+    }
   };
 
   useEffect(() => {
@@ -90,9 +90,9 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
   }, []);
 
   // Update read status for contact messages
-  const handleToggleReadStatus = (id: string, currentRead: boolean) => {
-    markContactMessageAsRead(id, !currentRead);
-    setContactMessages(getContactMessages());
+  const handleToggleReadStatus = async (id: string, currentRead: boolean) => {
+    await markContactMessageAsReadInSupabase(id, !currentRead);
+    setContactMessages(await getContactMessagesFromSupabase());
     if (selectedMessage && selectedMessage.id === id) {
       setSelectedMessage(prev => prev ? { ...prev, is_read: !currentRead } : null);
     }
