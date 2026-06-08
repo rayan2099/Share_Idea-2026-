@@ -4,6 +4,7 @@
  */
 
 import { Submission, SubmissionStatus, Moderator, ContactMessage } from './types';
+import { supabase } from './supabaseService';
 
 // Let's create helper to generate unique reference ID: IDEA-YYYY-XXXX
 export function generateReferenceId(): string {
@@ -807,6 +808,65 @@ export function updateSubmissionAdminFields(id: string, update: { status?: Submi
   return updated;
 }
 
+export async function getSubmissionsFromSupabase(): Promise<Submission[]> {
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.warn('Supabase submissions fetch failed, using local fallback:', error.message);
+    return getSubmissions();
+  }
+
+  return (data || []) as Submission[];
+}
+
+export async function createSubmissionInSupabase(
+  newSub: Omit<Submission, 'id' | 'reference_id' | 'created_at' | 'status' | 'score' | 'admin_notes' | 'email_sent'> & Record<string, any>
+): Promise<Submission> {
+  const payload = {
+    ...newSub,
+    reference_id: generateReferenceId(),
+    status: 'new' as SubmissionStatus,
+    score: null,
+    admin_notes: '',
+    email_sent: false
+  };
+
+  const { data, error } = await supabase
+    .from('submissions')
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase submission insert failed:', error);
+    throw new Error(error.message);
+  }
+
+  return data as Submission;
+}
+
+export async function updateSubmissionAdminFieldsInSupabase(
+  id: string,
+  update: { status?: SubmissionStatus; score?: number | null; admin_notes?: string }
+): Promise<Submission | null> {
+  const { data, error } = await supabase
+    .from('submissions')
+    .update(update)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.warn('Supabase submission update failed, using local fallback:', error.message);
+    return updateSubmissionAdminFields(id, update);
+  }
+
+  return data as Submission;
+}
+
 // Trigger simulated emails (Resend & Supabase Edge Function)
 export function triggerSimulatedEmails(sub: Submission) {
   // 1. Email to Founder
@@ -985,4 +1045,3 @@ export function validateAdminLogin(email: string, word: string): { success: bool
   
   return { success: false, role: null, email: null };
 }
-

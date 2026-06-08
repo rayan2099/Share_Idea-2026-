@@ -25,8 +25,9 @@ import { Language, Submission, SubmissionStatus } from './types';
 import { translations } from './translations';
 import { 
   getSubmissions, 
-  createSubmission, 
-  updateSubmissionAdminFields, 
+  getSubmissionsFromSupabase,
+  createSubmissionInSupabase,
+  updateSubmissionAdminFieldsInSupabase,
   getEmailLogs, 
   clearAllSubmissionsAndSetDefaults,
   getContactMessages,
@@ -235,25 +236,33 @@ export default function App() {
 
   // Sync submissions and contact messages lists when navigating in Admin
   useEffect(() => {
-    if (currentPath.startsWith('/admin')) {
-      setSubmissionsList(getSubmissions());
+    if (currentPath.startsWith('/admin') || currentPath === '/') {
+      getSubmissionsFromSupabase().then(setSubmissionsList);
       setContactMessagesList(getContactMessages());
     }
   }, [currentPath]);
 
   // Form submit handler
-  const handleFormSubmission = (payload: any) => {
-    const created = createSubmission(payload);
-    // Reload database
-    setSubmissionsList(getSubmissions());
-    setLastSubmittedRef(created.reference_id);
-    navigate('/submit-success');
+  const handleFormSubmission = async (payload: any) => {
+    try {
+      const created = await createSubmissionInSupabase(payload);
+      const latest = await getSubmissionsFromSupabase();
+      setSubmissionsList(latest);
+      setLastSubmittedRef(created.reference_id);
+      navigate('/submit-success');
+    } catch (err: any) {
+      alert(lang === 'ar'
+        ? `تعذر حفظ الفكرة في قاعدة البيانات: ${err.message || 'خطأ غير معروف'}`
+        : `Could not save the idea to the database: ${err.message || 'Unknown error'}`
+      );
+    }
   };
 
   // Modify evaluation metrics
-  const handleUpdateEvaluation = (id: string, update: { status?: SubmissionStatus; score?: number | null; admin_notes?: string }) => {
-    updateSubmissionAdminFields(id, update);
-    setSubmissionsList(getSubmissions());
+  const handleUpdateEvaluation = async (id: string, update: { status?: SubmissionStatus; score?: number | null; admin_notes?: string }) => {
+    await updateSubmissionAdminFieldsInSupabase(id, update);
+    const latest = await getSubmissionsFromSupabase();
+    setSubmissionsList(latest);
   };
 
   // System Clean Reset Database
