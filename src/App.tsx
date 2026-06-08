@@ -53,6 +53,7 @@ import ContactPage from './components/ContactPage';
 import DocsPage from './components/DocsPage';
 import Footer from './components/Footer';
 import { Logo } from './components/Logo';
+import { supabase } from './supabaseService';
 
 export default function App() {
   // Initialize Database on load
@@ -141,7 +142,8 @@ export default function App() {
     navigate('/admin/dashboard');
   };
 
-  const handleAdminSignOut = () => {
+  const handleAdminSignOut = async () => {
+    await supabase.auth.signOut();
     setIsAdminAuthenticated(false);
     setAdminEmail('admin@ideaflow.com');
     setAdminRole('main');
@@ -152,6 +154,52 @@ export default function App() {
     }
     navigate('/');
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const restoreAdminSession = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user;
+
+      if (!user) return;
+
+      const { data: profile, error } = await supabase
+        .from('admin_profiles')
+        .select('email, role, is_active')
+        .eq('id', user.id)
+        .single();
+
+      if (!isMounted) return;
+
+      if (!error && profile?.is_active) {
+        handleAdminLogin(profile.email, profile.role as 'main' | 'moderator');
+      }
+    };
+
+    restoreAdminSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!session?.user || !isMounted) return;
+
+      const { data: profile, error } = await supabase
+        .from('admin_profiles')
+        .select('email, role, is_active')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!isMounted) return;
+
+      if (!error && profile?.is_active) {
+        handleAdminLogin(profile.email, profile.role as 'main' | 'moderator');
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   // 4. Admin Dark Mode (Sidebar toggle option)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {

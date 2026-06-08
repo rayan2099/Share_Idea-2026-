@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, ShieldAlert } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../translations';
-import { validateAdminLogin, getMainAdminCredentials } from '../dataStore';
+import { supabase } from '../supabaseService';
 import { Logo } from './Logo';
 
 interface AdminLoginProps {
@@ -18,23 +18,48 @@ interface AdminLoginProps {
 
 export default function AdminLogin({ lang, onLoginSuccess, onBack }: AdminLoginProps) {
   const t = translations[lang];
-  const mainCreds = getMainAdminCredentials();
 
   // Form states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setIsLoading(true);
 
-    const res = validateAdminLogin(email, password);
-    if (res.success && res.email && res.role) {
-      onLoginSuccess(res.email, res.role);
-    } else {
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password
+      });
+
+      if (authError || !authData.user) {
+        setErrorMessage(t.errorInvalidCreds);
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('admin_profiles')
+        .select('email, role, is_active')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || !profile || !profile.is_active) {
+        await supabase.auth.signOut();
+        setErrorMessage(lang === 'ar' ? 'هذا الحساب غير مصرح له بدخول لوحة الإدارة' : 'This account is not authorized for the admin portal');
+        return;
+      }
+
+      onLoginSuccess(profile.email, profile.role as 'main' | 'moderator');
+    } catch (err) {
+      console.error('Supabase admin login failed:', err);
       setErrorMessage(t.errorInvalidCreds);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -148,18 +173,13 @@ export default function AdminLogin({ lang, onLoginSuccess, onBack }: AdminLoginP
           {/* Submit Button */}
           <button
             type="submit"
+            disabled={isLoading}
             className="w-full py-3.5 bg-[#E8703A] hover:bg-[#D4622E] text-white rounded-full font-bold text-sm tracking-wide shadow-md transition-all cursor-pointer mt-4"
             id="btn-login-submit"
           >
-            {t.loginButton}
+            {isLoading ? (lang === 'ar' ? 'جاري الدخول...' : 'Signing in...') : t.loginButton}
           </button>
         </form>
-
-        {/* Credentials hints helpful block */}
-        <div className="mt-6 pt-5 border-t border-white/10 text-center font-mono select-all" id="login-hints-container">
-          <span className="text-[10px] text-[var(--secondary-text)] opacity-65 block mb-1">CREDENTIALS DECK:</span>
-          <code className="text-[11px] text-[var(--accent-gold)] block font-bold">{mainCreds.email} / {mainCreds.password}</code>
-        </div>
       </div>
 
       {/* 3. Outside Card Footer Information Text */}
