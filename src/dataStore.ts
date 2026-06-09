@@ -806,6 +806,17 @@ export async function markContactMessageAsReadInSupabase(id: string, isRead: boo
   }
 }
 
+export async function deleteContactMessageInSupabase(id: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_contact_message', {
+    message_id: id
+  });
+
+  if (error) {
+    console.error('Supabase message delete failed:', error);
+    throw new Error(error.message);
+  }
+}
+
 export async function getMessageRepliesFromSupabase(messageId: string): Promise<MessageReply[]> {
   const { data, error } = await supabase
     .from('message_replies')

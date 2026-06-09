@@ -15,7 +15,8 @@ import {
   Clock, 
   RefreshCw,
   MessageSquare,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../translations';
@@ -23,6 +24,7 @@ import {
   getEmailLogs, 
   getContactMessagesFromSupabase, 
   markContactMessageAsReadInSupabase,
+  deleteContactMessageInSupabase,
   getMessageRepliesFromSupabase,
   sendContactReplyInSupabase,
   EmailLog,
@@ -51,6 +53,8 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
   const [replyError, setReplyError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [readUpdateError, setReadUpdateError] = useState('');
+  const [isDeletingMessage, setIsDeletingMessage] = useState(false);
+  const [deleteMessageError, setDeleteMessageError] = useState('');
 
   // Helper to format date/time beautifully
   const formatDate = (dateStr: string) => {
@@ -98,6 +102,8 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
     setReplyBody('');
     setReplyStatus('');
     setReplyError('');
+    setReadUpdateError('');
+    setDeleteMessageError('');
     setMessageReplies(await getMessageRepliesFromSupabase(message.id));
   };
 
@@ -154,6 +160,41 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
       );
     } finally {
       setIsSendingReply(false);
+    }
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!selectedMessage) return;
+
+    const confirmed = window.confirm(
+      isAr
+        ? 'هل تريد حذف هذه الرسالة نهائياً من لوحة الرسائل؟ سيتم حذف سجل الردود المرتبط بها أيضاً.'
+        : 'Delete this message permanently from the inbox? Its reply history will also be deleted.'
+    );
+
+    if (!confirmed) return;
+
+    setDeleteMessageError('');
+    setReadUpdateError('');
+    setIsDeletingMessage(true);
+
+    try {
+      await deleteContactMessageInSupabase(selectedMessage.id);
+      const freshMessages = await getContactMessagesFromSupabase();
+      setContactMessages(freshMessages);
+      setSelectedMessage(null);
+      setMessageReplies([]);
+      setReplyBody('');
+      setReplyStatus('');
+    } catch (error) {
+      console.error('Unable to delete contact message:', error);
+      setDeleteMessageError(
+        error instanceof Error
+          ? error.message
+          : (isAr ? 'تعذر حذف الرسالة من قاعدة البيانات.' : 'Could not delete the message from the database.')
+      );
+    } finally {
+      setIsDeletingMessage(false);
     }
   };
 
@@ -335,7 +376,7 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
             <div className="bg-[#0A4F68] border border-white/8 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.3)] flex flex-col h-full overflow-hidden text-right" id="contact-reader-pane">
               {/* Header card info */}
               <div className="p-5 bg-[#083D52] border-b border-white/8" id="contact-reader-hdr">
-                <div className="flex items-center justify-between mb-3 select-none">
+                <div className="flex items-center justify-between mb-3 select-none gap-3">
                   <div className="flex items-center gap-2">
                     <Inbox className="w-4 h-4 text-[#F2C037]" />
                     <span className="text-[10px] text-amber-300 font-bold bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20 font-ar">
@@ -343,27 +384,40 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
                     </span>
                   </div>
 
-                  {/* Switch read or unread */}
-                  <button
-                    onClick={() => handleToggleReadStatus(selectedMessage.id, selectedMessage.is_read)}
-                    className={`px-3 py-1 cursor-pointer text-[10px] font-bold rounded-lg transition-all border ${
-                      selectedMessage.is_read
-                        ? 'border-slate-500 text-slate-300 hover:bg-white/5 hover:text-white'
-                        : 'border-rose-500 text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white'
-                    }`}
-                    id="btn-toggle-read-state"
-                  >
-                    {selectedMessage.is_read 
-                      ? (isAr ? 'تحديد كغير مقروء' : 'Mark as Unread')
-                      : (isAr ? 'تحديد كمقروء' : 'Mark as Read')
-                    }
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Switch read or unread */}
+                    <button
+                      onClick={() => handleToggleReadStatus(selectedMessage.id, selectedMessage.is_read)}
+                      className={`px-3 py-1 cursor-pointer text-[10px] font-bold rounded-lg transition-all border ${
+                        selectedMessage.is_read
+                          ? 'border-slate-500 text-slate-300 hover:bg-white/5 hover:text-white'
+                          : 'border-rose-500 text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white'
+                      }`}
+                      id="btn-toggle-read-state"
+                    >
+                      {selectedMessage.is_read 
+                        ? (isAr ? 'تحديد كغير مقروء' : 'Mark as Unread')
+                        : (isAr ? 'تحديد كمقروء' : 'Mark as Read')
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { void handleDeleteMessage(); }}
+                      disabled={isDeletingMessage}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-[10px] font-bold text-rose-300 transition-all hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      id="btn-delete-contact-message"
+                      title={isAr ? 'حذف الرسالة' : 'Delete message'}
+                    >
+                      {isDeletingMessage ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      <span>{isAr ? 'حذف' : 'Delete'}</span>
+                    </button>
+                  </div>
                 </div>
 
-                {readUpdateError && (
+                {(readUpdateError || deleteMessageError) && (
                   <div className="mb-3 flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-bold text-rose-300 font-ar">
                     <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                    <span>{readUpdateError}</span>
+                    <span>{readUpdateError || deleteMessageError}</span>
                   </div>
                 )}
 
