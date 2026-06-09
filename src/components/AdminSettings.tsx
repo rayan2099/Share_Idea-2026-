@@ -409,8 +409,11 @@ export default function AdminSettings({
                       <span className="font-bold text-white font-mono text-left block" style={{ direction: 'ltr' }}>
                         {mod.email}
                       </span>
-                      <span className="text-[10px] text-[#B0D4E0]/60 font-mono text-left block" style={{ direction: 'ltr' }}>
-                        Added: {new Date(mod.created_at).toLocaleDateString()}
+                      <span className="text-[10px] text-[#B0D4E0]/60 block font-ar">
+                        {lang === 'ar'
+                          ? `تاريخ الإضافة: ${new Date(mod.created_at).toLocaleDateString('ar-SA')}`
+                          : `Added: ${new Date(mod.created_at).toLocaleDateString()}`
+                        }
                       </span>
                     </div>
 
@@ -421,7 +424,7 @@ export default function AdminSettings({
                           : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
                       }`}>
                         {mod.is_active === false
-                          ? (lang === 'ar' ? 'غير مصرح' : 'Not Authorized')
+                          ? (lang === 'ar' ? 'غير نشط' : 'Inactive')
                           : (lang === 'ar' ? 'مصرح له بالدخول' : 'Authorized')
                         }
                       </span>
