@@ -128,13 +128,7 @@ export const getVisibleProjects = async () => {
       .order('created_at', { ascending: false });
     
     if (error) throw new Error(error.message);
-    if (!data || data.length === 0) {
-      // Table exists but is completely empty: fall back to mockup to keep site gorgeous
-      return getLocalProjects()
-        .filter(p => p.is_visible)
-        .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-    }
-    return data;
+    return data || [];
   } catch (err) {
     console.warn('Supabase fetch failed, utilizing mockup fallback projects:', err);
     return getLocalProjects()
@@ -155,10 +149,7 @@ export const getAllProjects = async () => {
       .order('created_at', { ascending: false });
     
     if (error) throw new Error(error.message);
-    if (!data || data.length === 0) {
-      return getLocalProjects().sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-    }
-    return data;
+    return data || [];
   } catch (err) {
     console.warn('Supabase fetch failed, utilizing mockup fallback projects for admin view:', err);
     return getLocalProjects().sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
