@@ -1159,6 +1159,52 @@ export function deleteModerator(id: string) {
   saveModerators(filtered);
 }
 
+export async function getModeratorsFromSupabase(): Promise<Moderator[]> {
+  const { data, error } = await supabase.functions.invoke('manage-admin-users', {
+    body: { action: 'list' }
+  });
+
+  if (error) {
+    console.error('Supabase moderator list failed:', error);
+    throw new Error(error.message);
+  }
+
+  return (data?.moderators || []) as Moderator[];
+}
+
+export async function addModeratorToSupabase(email: string, password: string): Promise<Moderator[]> {
+  const { data, error } = await supabase.functions.invoke('manage-admin-users', {
+    body: {
+      action: 'create',
+      email: email.trim().toLowerCase(),
+      password
+    }
+  });
+
+  if (error) {
+    console.error('Supabase moderator create failed:', error);
+    throw new Error(error.message);
+  }
+
+  return (data?.moderators || []) as Moderator[];
+}
+
+export async function deactivateModeratorInSupabase(id: string): Promise<Moderator[]> {
+  const { data, error } = await supabase.functions.invoke('manage-admin-users', {
+    body: {
+      action: 'deactivate',
+      id
+    }
+  });
+
+  if (error) {
+    console.error('Supabase moderator deactivate failed:', error);
+    throw new Error(error.message);
+  }
+
+  return (data?.moderators || []) as Moderator[];
+}
+
 // Full credentials authorization checker
 export function validateAdminLogin(email: string, word: string): { success: boolean; role: 'main' | 'moderator' | null; email: string | null } {
   const cleanEmail = email.trim().toLowerCase();

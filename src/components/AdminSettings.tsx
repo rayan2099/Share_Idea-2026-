@@ -23,9 +23,9 @@ import { translations } from '../translations';
 import { 
   getMainAdminCredentials, 
   updateMainAdminCredentials,
-  getModerators,
-  addModerator,
-  deleteModerator 
+  getModeratorsFromSupabase,
+  addModeratorToSupabase,
+  deactivateModeratorInSupabase
 } from '../dataStore';
 
 interface AdminSettingsProps {
@@ -64,6 +64,8 @@ export default function AdminSettings({
   const [modAddSuccess, setModAddSuccess] = useState(false);
   const [modAddError, setModAddError] = useState('');
   const [modsList, setModsList] = useState<Moderator[]>([]);
+  const [isModsLoading, setIsModsLoading] = useState(false);
+  const [isSavingMod, setIsSavingMod] = useState(false);
 
   // Load Initial settings
   useEffect(() => {
@@ -71,9 +73,22 @@ export default function AdminSettings({
     setMainEmailInput(mainCreds.email);
     setMainPasswordInput(mainCreds.password);
     
-    // Load moderators
-    setModsList(getModerators());
+    if (adminRole === 'main') {
+      void loadModerators();
+    }
   }, []);
+
+  const loadModerators = async () => {
+    setIsModsLoading(true);
+    setModAddError('');
+    try {
+      setModsList(await getModeratorsFromSupabase());
+    } catch (error) {
+      setModAddError(error instanceof Error ? error.message : (lang === 'ar' ? 'تعذر تحميل المشرفين الفرعيين' : 'Could not load sub-admins'));
+    } finally {
+      setIsModsLoading(false);
+    }
+  };
 
   // Handle saving main admin info
   const handleSaveMainCredentials = (e: React.FormEvent) => {
@@ -97,7 +112,7 @@ export default function AdminSettings({
   };
 
   // Handle adding secondary moderator
-  const handleAddModerator = (e: React.FormEvent) => {
+  const handleAddModerator = async (e: React.FormEvent) => {
     e.preventDefault();
     setModAddSuccess(false);
     setModAddError('');
@@ -118,9 +133,8 @@ export default function AdminSettings({
       return;
     }
 
-    // Check if duplicate in mods
-    const currentMods = getModerators();
-    if (currentMods.some(m => m.email === newModEmail.trim().toLowerCase())) {
+    // Check if duplicate in active or previously created moderators.
+    if (modsList.some(m => m.email === newModEmail.trim().toLowerCase())) {
       setModAddError(
         lang === 'ar' 
           ? 'هذا المشرف مسجل وموجود بالفعل بالنظام' 
@@ -129,22 +143,35 @@ export default function AdminSettings({
       return;
     }
 
-    // Add Mod
-    addModerator(newModEmail, newModPassword);
-    setModsList(getModerators());
-    setNewModEmail('');
-    setNewModPassword('');
-    setModAddSuccess(true);
+    setIsSavingMod(true);
+    try {
+      setModsList(await addModeratorToSupabase(newModEmail, newModPassword));
+      setNewModEmail('');
+      setNewModPassword('');
+      setModAddSuccess(true);
 
-    setTimeout(() => {
-      setModAddSuccess(false);
-    }, 4000);
+      setTimeout(() => {
+        setModAddSuccess(false);
+      }, 4000);
+    } catch (error) {
+      setModAddError(error instanceof Error ? error.message : (lang === 'ar' ? 'تعذر إضافة المشرف الفرعي' : 'Could not add sub-admin'));
+    } finally {
+      setIsSavingMod(false);
+    }
   };
 
   // Handle deleting sub mod
-  const handleDeleteMod = (id: string) => {
-    deleteModerator(id);
-    setModsList(getModerators());
+  const handleDeleteMod = async (id: string) => {
+    if (!confirm(lang === 'ar' ? 'هل تريد إلغاء صلاحية هذا المشرف الفرعي؟' : 'Deactivate this sub-admin?')) {
+      return;
+    }
+
+    setModAddError('');
+    try {
+      setModsList(await deactivateModeratorInSupabase(id));
+    } catch (error) {
+      setModAddError(error instanceof Error ? error.message : (lang === 'ar' ? 'تعذر إلغاء صلاحية المشرف' : 'Could not deactivate sub-admin'));
+    }
   };
 
   return (
@@ -229,7 +256,7 @@ export default function AdminSettings({
                   type={showMainPassword ? 'text' : 'password'}
                   value={mainPasswordInput}
                   onChange={(e) => setMainPasswordInput(e.target.value)}
-                  disabled={adminRole !== 'main'}
+                  disabled={adminRole !== 'main' || isSavingMod}
                   required
                   placeholder="••••••••"
                   className="w-full px-4 py-2.5 bg-[#062F3F] border border-white/8 rounded-lg text-sm text-white focus:border-[#F5C842] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-left font-mono"
@@ -312,7 +339,7 @@ export default function AdminSettings({
                     type={showModPassword ? 'text' : 'password'}
                     value={newModPassword}
                     onChange={(e) => setNewModPassword(e.target.value)}
-                    disabled={adminRole !== 'main'}
+                    disabled={adminRole !== 'main' || isSavingMod}
                     required
                     placeholder="••••••••"
                     className="w-full px-3 py-2 bg-[#062F3F] border border-white/8 rounded-lg text-xs text-white focus:border-[#F5C842] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-left font-mono"
@@ -321,7 +348,7 @@ export default function AdminSettings({
                   <button
                     type="button"
                     onClick={() => setShowModPassword(!showModPassword)}
-                    disabled={adminRole !== 'main'}
+                    disabled={adminRole !== 'main' || isSavingMod}
                     className="absolute inset-y-0 right-0 px-2.5 flex items-center text-[#B0D4E0] hover:text-white transition-colors"
                   >
                     {showModPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -346,10 +373,11 @@ export default function AdminSettings({
               {adminRole === 'main' && (
                 <button
                   type="submit"
-                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition-all active:scale-97 cursor-pointer flex items-center justify-center gap-1 shadow-sm mt-3"
+                  disabled={isSavingMod}
+                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition-all active:scale-97 cursor-pointer flex items-center justify-center gap-1 shadow-sm mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{lang === 'ar' ? 'إضافة وتثبيت المشرف' : 'Register Moderator'}</span>
+                  {isSavingMod ? <ShieldCheck className="w-3.5 h-3.5 animate-pulse" /> : <Plus className="w-3.5 h-3.5" />}
+                  <span>{isSavingMod ? (lang === 'ar' ? 'جاري الإضافة...' : 'Registering...') : (lang === 'ar' ? 'إضافة وتثبيت المشرف' : 'Register Moderator')}</span>
                 </button>
               )}
             </form>
@@ -361,7 +389,14 @@ export default function AdminSettings({
               {lang === 'ar' ? 'المشرفون الفرعيون المعتمدون بالمنصة' : 'Verified Sub-Moderators Directory'}
             </h4>
 
-            {modsList.length === 0 ? (
+            {isModsLoading ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-white/5 rounded-xl bg-white/1 justify-self-stretch">
+                <ShieldCheck className="w-8 h-8 text-[#F5C842] mb-2 animate-pulse" />
+                <p className="text-xs text-[#B0D4E0] font-ar">
+                  {lang === 'ar' ? 'جاري تحميل المشرفين الفرعيين...' : 'Loading sub-admins...'}
+                </p>
+              </div>
+            ) : modsList.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-white/5 rounded-xl bg-white/1 justify-self-stretch">
                 <Users className="w-8 h-8 text-white/20 mb-2" />
                 <p className="text-xs text-[#B0D4E0] font-ar">
@@ -382,14 +417,15 @@ export default function AdminSettings({
                         {mod.email}
                       </span>
                       <span className="text-[10px] text-[#B0D4E0]/60 font-mono text-left block" style={{ direction: 'ltr' }}>
-                        PASS_INDEX: "{mod.password}" • Added: {new Date(mod.created_at).toLocaleDateString()}
+                        {mod.is_active === false ? 'INACTIVE' : 'ACTIVE'} • Added: {new Date(mod.created_at).toLocaleDateString()}
                       </span>
                     </div>
 
                     {adminRole === 'main' ? (
                       <button
                         onClick={() => handleDeleteMod(mod.id)}
-                        className="p-1.5 bg-rose-950/30 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 rounded-lg transition-colors border border-rose-500/10 cursor-pointer"
+                        disabled={mod.is_active === false}
+                        className="p-1.5 bg-rose-950/30 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 rounded-lg transition-colors border border-rose-500/10 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         title={lang === 'ar' ? 'إلغاء وسحب الصلاحية' : 'Revoke authorization'}
                       >
                         <Trash2 className="w-4 h-4" />

@@ -51,7 +51,10 @@ export interface Moderator {
   id: string;
   email: string;
   password?: string;
+  role?: 'main' | 'moderator';
+  is_active?: boolean;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface ContactMessage {
@@ -88,4 +91,3 @@ export interface Project {
   created_at: string;
   updated_at: string;
 }
-
