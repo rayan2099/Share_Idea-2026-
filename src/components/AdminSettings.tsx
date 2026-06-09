@@ -342,6 +342,11 @@ export default function AdminSettings({
                     {showModPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
+                <p className="text-[10px] leading-relaxed text-[#B0D4E0]/70 font-ar">
+                  {lang === 'ar'
+                    ? 'يجب أن تكون كلمة المرور 6 أحرف على الأقل. يفضل استخدام حروف وأرقام لزيادة الأمان.'
+                    : 'Password must be at least 6 characters. Letters and numbers are recommended for better security.'}
+                </p>
               </div>
 
               {modAddError && (
