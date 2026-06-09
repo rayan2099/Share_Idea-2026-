@@ -1201,15 +1201,20 @@ export async function addModeratorToSupabase(email: string, password: string): P
 }
 
 export async function deactivateModeratorInSupabase(id: string): Promise<Moderator[]> {
+  return setModeratorActiveInSupabase(id, false);
+}
+
+export async function setModeratorActiveInSupabase(id: string, isActive: boolean): Promise<Moderator[]> {
   const { data, error } = await supabase.functions.invoke('manage-admin-users', {
     body: {
-      action: 'deactivate',
-      id
+      action: 'set_active',
+      id,
+      is_active: isActive
     }
   });
 
   if (error) {
-    console.error('Supabase moderator deactivate failed:', error);
+    console.error('Supabase moderator access update failed:', error);
     throw new Error(error.message);
   }
 

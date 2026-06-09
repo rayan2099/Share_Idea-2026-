@@ -10,7 +10,6 @@ import {
   LogOut, 
   ShieldCheck,
   Plus,
-  Trash2,
   Key,
   Users,
   AlertTriangle,
@@ -25,7 +24,7 @@ import {
   updateMainAdminCredentials,
   getModeratorsFromSupabase,
   addModeratorToSupabase,
-  deactivateModeratorInSupabase
+  setModeratorActiveInSupabase
 } from '../dataStore';
 
 interface AdminSettingsProps {
@@ -66,6 +65,7 @@ export default function AdminSettings({
   const [modsList, setModsList] = useState<Moderator[]>([]);
   const [isModsLoading, setIsModsLoading] = useState(false);
   const [isSavingMod, setIsSavingMod] = useState(false);
+  const [togglingModId, setTogglingModId] = useState<string | null>(null);
 
   // Load Initial settings
   useEffect(() => {
@@ -160,17 +160,16 @@ export default function AdminSettings({
     }
   };
 
-  // Handle deleting sub mod
-  const handleDeleteMod = async (id: string) => {
-    if (!confirm(lang === 'ar' ? 'هل تريد إلغاء صلاحية هذا المشرف الفرعي؟' : 'Deactivate this sub-admin?')) {
-      return;
-    }
-
+  // Handle moderator access toggle
+  const handleToggleModAccess = async (mod: Moderator) => {
     setModAddError('');
+    setTogglingModId(mod.id);
     try {
-      setModsList(await deactivateModeratorInSupabase(id));
+      setModsList(await setModeratorActiveInSupabase(mod.id, mod.is_active === false));
     } catch (error) {
-      setModAddError(error instanceof Error ? error.message : (lang === 'ar' ? 'تعذر إلغاء صلاحية المشرف' : 'Could not deactivate sub-admin'));
+      setModAddError(error instanceof Error ? error.message : (lang === 'ar' ? 'تعذر تحديث صلاحية المشرف' : 'Could not update sub-admin access'));
+    } finally {
+      setTogglingModId(null);
     }
   };
 
@@ -344,8 +343,8 @@ export default function AdminSettings({
                 </div>
                 <p className="text-[10px] leading-relaxed text-[#B0D4E0]/70 font-ar">
                   {lang === 'ar'
-                    ? 'يجب أن تكون كلمة المرور 6 أحرف على الأقل. يفضل استخدام حروف وأرقام لزيادة الأمان.'
-                    : 'Password must be at least 6 characters. Letters and numbers are recommended for better security.'}
+                    ? 'يجب أن تكون كلمة المرور 8 أحرف على الأقل. يفضل استخدام حروف وأرقام لزيادة الأمان.'
+                    : 'Password must be at least 8 characters. Letters and numbers are recommended for better security.'}
                 </p>
               </div>
 
@@ -430,14 +429,25 @@ export default function AdminSettings({
                       </span>
 
                       {adminRole === 'main' ? (
-                      <button
-                        onClick={() => handleDeleteMod(mod.id)}
-                        disabled={mod.is_active === false}
-                        className="p-1.5 bg-rose-950/30 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 rounded-lg transition-colors border border-rose-500/10 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                        title={lang === 'ar' ? 'إلغاء وسحب الصلاحية' : 'Revoke authorization'}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={mod.is_active !== false}
+                          onClick={() => handleToggleModAccess(mod)}
+                          disabled={togglingModId === mod.id}
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-all duration-200 ${
+                            mod.is_active === false
+                              ? 'border-rose-500/30 bg-rose-950/50'
+                              : 'border-emerald-400/35 bg-emerald-500'
+                          } ${togglingModId === mod.id ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
+                          title={lang === 'ar' ? 'تشغيل أو إيقاف صلاحية الدخول' : 'Toggle login access'}
+                        >
+                          <span
+                            className={`inline-block h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                              mod.is_active === false ? 'translate-x-1' : '-translate-x-5'
+                            }`}
+                          />
+                        </button>
                       ) : null}
                     </div>
                   </div>

@@ -8,7 +8,8 @@ declare const Deno: {
 type ManageAdminPayload =
   | { action: 'list' }
   | { action: 'create'; email: string; password: string }
-  | { action: 'deactivate'; id: string };
+  | { action: 'deactivate'; id: string }
+  | { action: 'set_active'; id: string; is_active: boolean };
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -162,7 +163,7 @@ async function listModerators(supabaseUrl: string, serviceRoleKey: string) {
   return result;
 }
 
-async function deactivateModerator(supabaseUrl: string, serviceRoleKey: string, id: string) {
+async function setModeratorActive(supabaseUrl: string, serviceRoleKey: string, id: string, isActive: boolean) {
   const response = await fetch(`${supabaseUrl}/rest/v1/admin_profiles?id=eq.${id}&role=eq.moderator`, {
     method: 'PATCH',
     headers: {
@@ -172,7 +173,7 @@ async function deactivateModerator(supabaseUrl: string, serviceRoleKey: string, 
       Prefer: 'return=representation'
     },
     body: JSON.stringify({
-      is_active: false,
+      is_active: isActive,
       updated_at: new Date().toISOString()
     })
   });
@@ -180,7 +181,7 @@ async function deactivateModerator(supabaseUrl: string, serviceRoleKey: string, 
   const result = await response.json().catch(() => []);
 
   if (!response.ok) {
-    throw new Error(result?.message || 'Could not deactivate moderator');
+    throw new Error(result?.message || 'Could not update moderator access');
   }
 
   return result;
@@ -230,7 +231,16 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: 'Moderator id is required' }, 400);
       }
 
-      await deactivateModerator(supabaseUrl, serviceRoleKey, payload.id);
+      await setModeratorActive(supabaseUrl, serviceRoleKey, payload.id, false);
+      return jsonResponse({ ok: true, moderators: await listModerators(supabaseUrl, serviceRoleKey) });
+    }
+
+    if (payload.action === 'set_active') {
+      if (!payload.id) {
+        return jsonResponse({ error: 'Moderator id is required' }, 400);
+      }
+
+      await setModeratorActive(supabaseUrl, serviceRoleKey, payload.id, Boolean(payload.is_active));
       return jsonResponse({ ok: true, moderators: await listModerators(supabaseUrl, serviceRoleKey) });
     }
 
@@ -240,4 +250,3 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: error instanceof Error ? error.message : 'Admin management failed' }, 500);
   }
 });
-
