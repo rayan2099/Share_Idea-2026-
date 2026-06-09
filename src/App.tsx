@@ -26,7 +26,6 @@ import {
   getSubmissionsFromSupabase,
   createSubmissionInSupabase,
   updateSubmissionAdminFieldsInSupabase,
-  clearAllSubmissionsAndSetDefaults,
   getContactMessages,
   getContactMessagesFromSupabase,
   initDataStore,
@@ -251,16 +250,6 @@ export default function App() {
     await updateSubmissionAdminFieldsInSupabase(id, update);
     const latest = await getSubmissionsFromSupabase();
     setSubmissionsList(latest);
-  };
-
-  // System Clean Reset Database
-  const handleHardReset = () => {
-    if (confirm(lang === 'ar' ? 'هل أنت متأكد من إعادة ضبط كل البيانات والطلبات الافتراضية؟' : 'Are you sure you want to reset all data changes?')) {
-      clearAllSubmissionsAndSetDefaults();
-      setSubmissionsList(getSubmissions());
-      getContactMessagesFromSupabase().then(setContactMessagesList);
-      navigate('/admin/dashboard');
-    }
   };
 
   // Redirect gate: If on admin private pages but unauthenticated, fallback to Login
@@ -563,7 +552,6 @@ export default function App() {
                 onToggleLang={toggleLanguage}
                 isDarkMode={isDarkMode}
                 onToggleDarkMode={toggleDarkMode}
-                onHardReset={handleHardReset}
                 onSignOut={handleAdminSignOut}
                 adminEmail={adminEmail}
                 adminRole={adminRole}

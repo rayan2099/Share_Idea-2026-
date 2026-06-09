@@ -426,24 +426,44 @@ export default function AdminDashboard({ lang, submissions, onNavigate }: AdminD
 
   // --- FUNDING RANGE BUCKETS ---
   const getFundingBucket = (funding: string) => {
-    if (!funding) return "$0–$50K";
+    const fundingBuckets = [
+      lang === 'ar' ? 'أقل من 100 ألف ر.س' : 'Less than 100K SAR',
+      lang === 'ar' ? '100 ألف - 500 ألف ر.س' : '100K - 500K SAR',
+      lang === 'ar' ? '500 ألف - 1 مليون ر.س' : '500K - 1M SAR',
+      lang === 'ar' ? '1 مليون - 5 مليون ر.س' : '1M - 5M SAR',
+      lang === 'ar' ? '5 مليون - 10 مليون ر.س' : '5M - 10M SAR',
+      lang === 'ar' ? 'أكثر من 10 مليون ر.س' : 'More than 10M SAR',
+    ];
+
+    if (!funding) return fundingBuckets[0];
     const lower = funding.toLowerCase();
-    if (lower.includes('أقل من') || lower.includes('less than') || lower.includes('100,000')) return "$0–$50K";
-    if (lower.includes('100,000 - 500,000') || lower.includes('500,000')) return "$50K–$200K";
-    if (lower.includes('500,000 - 1,000,000')) return "$200K–$500K";
-    if (lower.includes('1 مليون') || lower.includes('1 million')) return "$500K–$1M";
-    if (lower.includes('5 مليون') || lower.includes('5 million')) return "$1M–$5M";
-    return "+$5M";
+
+    if (lower.includes('أكثر من 10') || lower.includes('more than 10')) return fundingBuckets[5];
+    if (lower.includes('5 مليون - 10') || lower.includes('5 million - 10')) return fundingBuckets[4];
+    if (lower.includes('1 مليون - 5') || lower.includes('1 million - 5')) return fundingBuckets[3];
+    if (lower.includes('500,000 - 1,000,000') || lower.includes('500,000 - 1,000,000')) return fundingBuckets[2];
+    if (lower.includes('100,000 - 500,000')) return fundingBuckets[1];
+    if (lower.includes('أقل من') || lower.includes('less than')) return fundingBuckets[0];
+
+    return fundingBuckets[0];
   };
 
   const getFundingStats = () => {
+    const fundingBuckets = [
+      lang === 'ar' ? 'أقل من 100 ألف ر.س' : 'Less than 100K SAR',
+      lang === 'ar' ? '100 ألف - 500 ألف ر.س' : '100K - 500K SAR',
+      lang === 'ar' ? '500 ألف - 1 مليون ر.س' : '500K - 1M SAR',
+      lang === 'ar' ? '1 مليون - 5 مليون ر.س' : '1M - 5M SAR',
+      lang === 'ar' ? '5 مليون - 10 مليون ر.س' : '5M - 10M SAR',
+      lang === 'ar' ? 'أكثر من 10 مليون ر.س' : 'More than 10M SAR',
+    ];
     const buckets: Record<string, number> = {
-      "$0–$50K": 0,
-      "$50K–$200K": 0,
-      "$200K–$500K": 0,
-      "$500K–$1M": 0,
-      "$1M–$5M": 0,
-      "+$5M": 0
+      [fundingBuckets[0]]: 0,
+      [fundingBuckets[1]]: 0,
+      [fundingBuckets[2]]: 0,
+      [fundingBuckets[3]]: 0,
+      [fundingBuckets[4]]: 0,
+      [fundingBuckets[5]]: 0
     };
     fSubs.forEach(s => {
       buckets[getFundingBucket(s.funding_range)]++;

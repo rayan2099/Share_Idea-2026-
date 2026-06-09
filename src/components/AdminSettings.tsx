@@ -8,7 +8,6 @@ import {
   User, 
   Globe, 
   LogOut, 
-  RefreshCw, 
   ShieldCheck,
   Plus,
   Trash2,
@@ -34,7 +33,6 @@ interface AdminSettingsProps {
   onToggleLang: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
-  onHardReset: () => void;
   onSignOut: () => void;
   adminEmail: string;
   adminRole: 'main' | 'moderator';
@@ -46,7 +44,6 @@ export default function AdminSettings({
   onToggleLang,
   isDarkMode,
   onToggleDarkMode,
-  onHardReset,
   onSignOut,
   adminEmail,
   adminRole,
@@ -449,40 +446,6 @@ export default function AdminSettings({
               </button>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* 5. System Reset & Maintenance (Danger Zone) */}
-      <section className="bg-[#083D52] border border-red-500/20 rounded-xl p-6 transition-all" id="settings-danger-section">
-        <h3 className="text-red-400 font-bold text-base mb-2 flex items-center gap-2.5 border-b border-red-500/20 pb-3 font-ar">
-          <RefreshCw className="w-5 h-5 animate-pulse text-red-400" />
-          <span>{lang === 'ar' ? 'منطقة الصيانة وإعادة تعيين البيانات' : 'Platform Reset & Maintenance (Danger Zone)'}</span>
-        </h3>
-        
-        <p className="text-xs text-[#B0D4E0] leading-relaxed mb-5 font-ar">
-          {lang === 'ar' 
-            ? 'ملاحظة: تتيح لك إعادة تعيين البيانات استعادة سجلات طلبات المشاريع التجريبية الأولى بنقرة واحدة، وسيتم إلغاء أو حذف أي إدخالات عشوائية وملاحظات تم تعديلها أثناء التجربة.' 
-            : 'Caution: This operation restores demo start-up applications and custom evaluation fields back to their original factory indices instantly.'}
-        </p>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-red-950/20 border border-red-500/15 rounded-xl" id="danger-zone-action-box">
-          <div className="flex flex-col text-right" id="danger-copy-col">
-            <span className="text-red-300 text-sm font-bold block font-ar">
-              {lang === 'ar' ? 'إعادة الإعدادات وبناء السجلات الأولية' : 'Full factory initialization'}
-            </span>
-            <span className="text-[11px] text-red-400/80 block mt-0.5 font-sans">
-              irreversible action • resets local IndexedDB
-            </span>
-          </div>
-          
-          <button
-            onClick={onHardReset}
-            className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-sm tracking-wide rounded-lg border border-red-500/25 transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-[0_4px_12px_rgba(239,68,68,0.2)] font-ar"
-            id="btn-settings-hard-reset"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'إعادة تعيين البيانات' : 'Reset All System Records'}</span>
-          </button>
         </div>
       </section>
 
