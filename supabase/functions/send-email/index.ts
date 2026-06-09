@@ -37,7 +37,19 @@ type ContactEmailPayload = {
   };
 };
 
-type EmailPayload = SubmissionEmailPayload | ContactEmailPayload;
+type ContactReplyPayload = {
+  type: 'contact_reply';
+  reply: {
+    message_id: string;
+    to_email: string;
+    to_name?: string;
+    original_subject: string;
+    original_message?: string;
+    reply_body: string;
+  };
+};
+
+type EmailPayload = SubmissionEmailPayload | ContactEmailPayload | ContactReplyPayload;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -92,6 +104,44 @@ async function sendEmail(args: {
   }
 
   return result;
+}
+
+async function requireAdmin(req: Request) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const authorization = req.headers.get('Authorization');
+
+  if (!supabaseUrl || !supabaseAnonKey || !authorization) {
+    throw new Error('Admin login required');
+  }
+
+  const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: authorization
+    }
+  });
+
+  const user = await userResponse.json().catch(() => null);
+
+  if (!userResponse.ok || !user?.id) {
+    throw new Error('Admin login required');
+  }
+
+  const profileResponse = await fetch(`${supabaseUrl}/rest/v1/admin_profiles?id=eq.${user.id}&is_active=eq.true&select=id`, {
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: authorization
+    }
+  });
+
+  const profiles = await profileResponse.json().catch(() => []);
+
+  if (!profileResponse.ok || !Array.isArray(profiles) || profiles.length === 0) {
+    throw new Error('Only active admins can send platform replies');
+  }
+
+  return user;
 }
 
 Deno.serve(async (req) => {
@@ -231,6 +281,37 @@ Deno.serve(async (req) => {
       ]);
 
       return jsonResponse({ ok: true, adminResult, senderResult });
+    }
+
+    if (payload.type === 'contact_reply') {
+      await requireAdmin(req);
+
+      const reply = payload.reply;
+
+      if (!reply?.to_email || !reply?.original_subject || !reply?.reply_body) {
+        return jsonResponse({ error: 'Missing contact reply fields' }, 400);
+      }
+
+      const replyHtml = `
+        <div dir="rtl" style="font-family:Arial,Tahoma,sans-serif;line-height:1.8;color:#0f172a">
+          <h2 style="color:#0A4F68">رد من فريق Share Idea</h2>
+          <p>أهلاً ${escapeHtml(reply.to_name || '')}،</p>
+          <p>${escapeHtml(reply.reply_body).replaceAll('\\n', '<br />')}</p>
+          <hr />
+          <p style="color:#64748b"><strong>رسالتك الأصلية:</strong> ${escapeHtml(reply.original_subject)}</p>
+          ${reply.original_message ? `<p style="color:#64748b">${escapeHtml(reply.original_message).replaceAll('\\n', '<br />')}</p>` : ''}
+        </div>
+      `;
+
+      const result = await sendEmail({
+        apiKey: resendApiKey,
+        from: fromEmail,
+        to: reply.to_email,
+        subject: `RE: ${reply.original_subject}`,
+        html: replyHtml
+      });
+
+      return jsonResponse({ ok: true, result });
     }
 
     return jsonResponse({ error: 'Unsupported email type' }, 400);

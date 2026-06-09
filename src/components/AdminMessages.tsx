@@ -23,9 +23,11 @@ import {
   getEmailLogs, 
   getContactMessagesFromSupabase, 
   markContactMessageAsReadInSupabase,
+  getMessageRepliesFromSupabase,
+  sendContactReplyInSupabase,
   EmailLog,
 } from '../dataStore';
-import { ContactMessage } from '../types';
+import { ContactMessage, MessageReply } from '../types';
 
 interface AdminMessagesProps {
   lang: Language;
@@ -42,6 +44,11 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
+  const [messageReplies, setMessageReplies] = useState<MessageReply[]>([]);
+  const [replyBody, setReplyBody] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [replyStatus, setReplyStatus] = useState('');
+  const [replyError, setReplyError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [readUpdateError, setReadUpdateError] = useState('');
 
@@ -86,6 +93,14 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
     }
   };
 
+  const handleSelectMessage = async (message: ContactMessage) => {
+    setSelectedMessage(message);
+    setReplyBody('');
+    setReplyStatus('');
+    setReplyError('');
+    setMessageReplies(await getMessageRepliesFromSupabase(message.id));
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -101,6 +116,44 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
     } catch (error) {
       console.error('Unable to update message read status:', error);
       setReadUpdateError(isAr ? 'تعذر تحديث حالة الرسالة في قاعدة البيانات.' : 'Could not update the message status in the database.');
+    }
+  };
+
+  const handleSendReply = async () => {
+    if (!selectedMessage) return;
+
+    const trimmedReply = replyBody.trim();
+    setReplyStatus('');
+    setReplyError('');
+
+    if (!trimmedReply) {
+      setReplyError(isAr ? 'اكتب نص الرد أولاً.' : 'Write a reply first.');
+      return;
+    }
+
+    setIsSendingReply(true);
+    try {
+      await sendContactReplyInSupabase(selectedMessage, trimmedReply);
+      setReplyBody('');
+      setReplyStatus(isAr ? 'تم إرسال الرد وحفظه داخل المنصة.' : 'Reply sent and saved inside the platform.');
+
+      const [freshMessages, freshReplies] = await Promise.all([
+        getContactMessagesFromSupabase(),
+        getMessageRepliesFromSupabase(selectedMessage.id)
+      ]);
+
+      setContactMessages(freshMessages);
+      setSelectedMessage(freshMessages.find(msg => msg.id === selectedMessage.id) || selectedMessage);
+      setMessageReplies(freshReplies);
+    } catch (error) {
+      console.error('Unable to send platform reply:', error);
+      setReplyError(
+        error instanceof Error
+          ? error.message
+          : (isAr ? 'تعذر إرسال الرد من داخل المنصة.' : 'Could not send the platform reply.')
+      );
+    } finally {
+      setIsSendingReply(false);
     }
   };
 
@@ -229,7 +282,7 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
                     return (
                       <div
                         key={msg.id}
-                        onClick={() => { setSelectedMessage(msg); }}
+                        onClick={() => { void handleSelectMessage(msg); }}
                         className={`p-4 text-right transition-all cursor-pointer flex items-start gap-3.5 ${
                           isSelected 
                             ? 'bg-[#083D52] border-r-4 border-[#F5C842]' 
@@ -341,16 +394,72 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
                 {selectedMessage.message}
               </div>
 
-              {/* Reply assist box */}
-              <div className="p-4 bg-slate-950/40 font-ar text-center select-none flex items-center justify-center gap-2">
-                <a
-                  href={`mailto:${selectedMessage.email}?subject=RE: ${encodeURIComponent(selectedMessage.subject)}`}
-                  className="px-4 py-2 bg-[#F5C842] hover:bg-[#ffda67] text-[#083D52] font-extrabold text-xs rounded-lg transition-all flex items-center gap-1.5 shadow-md active:scale-95"
-                  id="btn-reply-email-draft"
+              {/* In-platform reply composer */}
+              <div className="p-4 bg-slate-950/40 font-ar select-none space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-extrabold text-white">{isAr ? 'الرد من داخل المنصة' : 'Reply inside the platform'}</span>
+                  <span className="text-[10px] text-[#B0D4E0] truncate max-w-[220px] font-mono" dir="ltr">
+                    {selectedMessage.email}
+                  </span>
+                </div>
+
+                <textarea
+                  value={replyBody}
+                  onChange={(event) => {
+                    setReplyBody(event.target.value);
+                    setReplyStatus('');
+                    setReplyError('');
+                  }}
+                  placeholder={isAr ? 'اكتب ردك هنا وسيصل للمرسل عبر البريد...' : 'Write your reply here and it will be emailed to the sender...'}
+                  className="min-h-[120px] w-full resize-y rounded-xl border border-white/10 bg-[#083D52] p-3 text-sm leading-7 text-white outline-none transition-all placeholder:text-slate-400 focus:border-[#F5C842] focus:ring-1 focus:ring-[#F5C842]/20"
+                  style={{ direction: isAr ? 'rtl' : 'ltr' }}
+                  id="message-platform-reply-body"
+                />
+
+                {replyError && (
+                  <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-bold text-rose-300">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span>{replyError}</span>
+                  </div>
+                )}
+
+                {replyStatus && (
+                  <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[11px] font-bold text-emerald-300">
+                    <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span>{replyStatus}</span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => { void handleSendReply(); }}
+                  disabled={isSendingReply || !replyBody.trim()}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#F5C842] px-5 py-2.5 text-xs font-extrabold text-[#083D52] shadow-md transition-all hover:bg-[#ffda67] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  id="btn-send-platform-reply"
                 >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>{isAr ? 'الرد الفوري عبر البريد الإلكتروني' : 'Direct Email Reply'}</span>
-                </a>
+                  {isSendingReply ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  <span>{isSendingReply ? (isAr ? 'جاري الإرسال...' : 'Sending...') : (isAr ? 'إرسال الرد' : 'Send reply')}</span>
+                </button>
+
+                {messageReplies.length > 0 && (
+                  <div className="rounded-xl border border-white/8 bg-[#083D52]/70 p-3">
+                    <div className="mb-2 flex items-center gap-2 text-[11px] font-extrabold text-[#F5C842]">
+                      <Mail className="h-3.5 w-3.5" />
+                      <span>{isAr ? 'سجل الردود' : 'Reply history'}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {messageReplies.map((reply) => (
+                        <div key={reply.id} className="rounded-lg border border-white/5 bg-black/10 p-3 text-right">
+                          <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-[#B0D4E0]">
+                            <span className="font-mono" dir="ltr">{formatDate(reply.sent_at)}</span>
+                            <span className="truncate text-[#F5C842]">{reply.subject}</span>
+                          </div>
+                          <p className="whitespace-pre-wrap text-xs leading-6 text-slate-100">{reply.body}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Submission, SubmissionStatus, Moderator, ContactMessage } from './types';
+import { Submission, SubmissionStatus, Moderator, ContactMessage, MessageReply } from './types';
 import { supabase } from './supabaseService';
 
 // Let's create helper to generate unique reference ID: IDEA-YYYY-XXXX
@@ -804,6 +804,67 @@ export async function markContactMessageAsReadInSupabase(id: string, isRead: boo
     console.error('Supabase message read update failed:', error);
     throw new Error(error.message);
   }
+}
+
+export async function getMessageRepliesFromSupabase(messageId: string): Promise<MessageReply[]> {
+  const { data, error } = await supabase
+    .from('message_replies')
+    .select('*')
+    .eq('message_id', messageId)
+    .order('sent_at', { ascending: false });
+
+  if (error) {
+    console.warn('Supabase message replies fetch failed:', error.message);
+    return [];
+  }
+
+  return (data || []) as MessageReply[];
+}
+
+export async function sendContactReplyInSupabase(message: ContactMessage, body: string): Promise<void> {
+  const trimmedBody = body.trim();
+  const subject = `RE: ${message.subject}`;
+
+  if (!trimmedBody) {
+    throw new Error('Reply body is required');
+  }
+
+  const { error: emailError } = await supabase.functions.invoke('send-email', {
+    body: {
+      type: 'contact_reply',
+      reply: {
+        message_id: message.id,
+        to_email: message.email,
+        to_name: message.name,
+        original_subject: message.subject,
+        original_message: message.message,
+        reply_body: trimmedBody
+      }
+    }
+  });
+
+  if (emailError) {
+    console.error('Supabase contact reply email failed:', emailError);
+    throw new Error(emailError.message);
+  }
+
+  const { data: userData } = await supabase.auth.getUser();
+  const { error: logError } = await supabase
+    .from('message_replies')
+    .insert({
+      message_id: message.id,
+      admin_id: userData.user?.id ?? null,
+      to_email: message.email,
+      subject,
+      body: trimmedBody
+    });
+
+  if (logError) {
+    console.error('Supabase contact reply log failed:', logError);
+    throw new Error(logError.message);
+  }
+
+  await markContactMessageAsReadInSupabase(message.id, true);
 }
 
 // Get all submissions

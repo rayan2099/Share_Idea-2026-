@@ -64,6 +64,17 @@ export interface ContactMessage {
   is_read: boolean;
 }
 
+export interface MessageReply {
+  id: string;
+  message_id: string;
+  admin_id?: string | null;
+  to_email: string;
+  subject: string;
+  body: string;
+  sent_at: string;
+  created_at: string;
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -77,5 +88,4 @@ export interface Project {
   created_at: string;
   updated_at: string;
 }
-
 
