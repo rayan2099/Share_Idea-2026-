@@ -623,7 +623,11 @@ This file simulates the uploaded document securely within the AI Studio preview 
       }, 1500);
     } catch (error) {
       console.error('Unable to save submission evaluation:', error);
-      setSaveError(lang === 'ar' ? 'تعذر حفظ التقييم في قاعدة البيانات.' : 'Could not save the evaluation in the database.');
+      const message = error instanceof Error ? error.message : '';
+      setSaveError(lang === 'ar'
+        ? `تعذر حفظ التقييم في قاعدة البيانات.${message ? ` ${message}` : ''}`
+        : `Could not save the evaluation in the database.${message ? ` ${message}` : ''}`
+      );
     } finally {
       setIsSavingEvaluation(false);
     }
