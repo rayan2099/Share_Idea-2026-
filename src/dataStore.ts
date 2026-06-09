@@ -786,6 +786,11 @@ export async function createContactMessageInSupabase(contact: { name: string; em
     throw new Error(error.message);
   }
 
+  void sendEmailNotification({
+    type: 'contact_created',
+    contact
+  });
+
   return payload as ContactMessage;
 }
 
@@ -895,7 +900,14 @@ export async function createSubmissionInSupabase(
     throw new Error(error.message);
   }
 
-  return payload as Submission;
+  const created = payload as Submission;
+
+  void sendEmailNotification({
+    type: 'submission_created',
+    submission: created
+  });
+
+  return created;
 }
 
 export async function updateSubmissionAdminFieldsInSupabase(
@@ -915,6 +927,16 @@ export async function updateSubmissionAdminFieldsInSupabase(
   }
 
   return Array.isArray(data) ? data[0] as Submission : data as Submission;
+}
+
+async function sendEmailNotification(payload: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.functions.invoke('send-email', {
+    body: payload
+  });
+
+  if (error) {
+    console.error('Supabase email function failed:', error);
+  }
 }
 
 // Trigger simulated emails (Resend & Supabase Edge Function)
