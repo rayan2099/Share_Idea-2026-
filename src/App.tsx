@@ -11,13 +11,11 @@ import {
   Moon, 
   Sun, 
   User, 
-  Send, 
+  Send,
   ChevronRight, 
   Info,
-  CheckCircle,
   Sparkles,
   Globe,
-  X,
   Settings,
   Building2
 } from 'lucide-react';
@@ -28,12 +26,10 @@ import {
   getSubmissionsFromSupabase,
   createSubmissionInSupabase,
   updateSubmissionAdminFieldsInSupabase,
-  getEmailLogs, 
   clearAllSubmissionsAndSetDefaults,
   getContactMessages,
   getContactMessagesFromSupabase,
   initDataStore,
-  EmailLog 
 } from './dataStore';
 
 // Dynamic Sub-components imports
@@ -225,15 +221,6 @@ export default function App() {
   
   // Last Reference ID submitted for success screen
   const [lastSubmittedRef, setLastSubmittedRef] = useState<string>('');
-
-  // 6. Active Live EmailLogs (so developers can inspect double emails triggered instantly)
-  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
-  const [isEmailViewerOpen, setIsEmailViewerOpen] = useState(false);
-
-  // Sync emails lists
-  useEffect(() => {
-    setEmailLogs(getEmailLogs());
-  }, [submissionsList]);
 
   // Sync submissions and contact messages lists when navigating in Admin
   useEffect(() => {
@@ -653,88 +640,6 @@ export default function App() {
       {/* Global Footer for public pages */}
       {showTealGradientBackdrop && currentPath !== '/admin/login' && (
         <Footer lang={lang} onNavigate={navigate} />
-      )}
-
-      {/* 3. SIMULATED RESEND OUTGOING EMAIL DISPATCHES HUD LOGGER PANEL (COLLAPSIBLE FLOATING TRAY) */}
-      {currentPath !== '/' && (
-        <div 
-          className="fixed bottom-4 end-4 z-50 flex flex-col items-end gap-2.5 font-sans"
-          id="simulated-emails-toast-trigger"
-        >
-          <button
-            onClick={() => setIsEmailViewerOpen(prev => !prev)}
-            className="p-3 bg-slate-900 border border-slate-700 hover:bg-slate-800 text-white rounded-full flex items-center gap-2 shadow-xl cursor-pointer hover:scale-[1.03] transition-all"
-            id="btn-trigger-email-live-viewer"
-          >
-            <span className="relative flex h-2.5 w-2.5" id="pulse-dot">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <Send className="w-4 h-4 text-emerald-400" />
-            <span className="text-[11px] font-bold tracking-wide">
-              {lang === 'ar' ? `المحاكي: رسائل البريد المرسلة (${emailLogs.length})` : `EMULATOR: Outbox (${emailLogs.length})`}
-            </span>
-          </button>
-
-          {isEmailViewerOpen && (
-            <div 
-              className="w-[360px] md:w-[460px] max-h-[380px] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 flex flex-col overflow-hidden text-right animate-scale-up text-xs font-medium"
-              id="simulated-emails-panel-window"
-            >
-              {/* Outbox header */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-3" id="outbox-hud-header">
-                <div className="flex items-center gap-1.5" id="outbox-title-label">
-                  <CheckCircle className="w-4.5 h-4.5 text-emerald-500" />
-                  <span className="font-extrabold text-emerald-400 tracking-wider">RESEND OUTGOING EMULATION DECK</span>
-                </div>
-                <button 
-                  onClick={() => setIsEmailViewerOpen(false)}
-                  className="text-slate-400 hover:text-white cursor-pointer font-bold"
-                  id="btn-close-outbox"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Outbox messages logs list stack */}
-              <div className="flex-1 overflow-y-auto space-y-3.5" id="outbox-hud-stack">
-                {emailLogs.length === 0 ? (
-                  <div className="py-12 text-center text-slate-500" id="empty-outbox">
-                    <span className="block italic text-[11px]" id="empty-outbox-msg">
-                      {lang === 'ar' ? 'لا توجد رسائل مرسلة بعد. قدّم طلباً إلكترونياً لتجربتها!' : 'Outbox is empty. Submit a startup idea to trigger dynamic emails!'}
-                    </span>
-                  </div>
-                ) : (
-                  emailLogs.map((log) => (
-                    <div 
-                      key={log.id} 
-                      className="p-3 bg-slate-800/80 border border-slate-700 rounded-lg space-y-1.5 selection:bg-slate-700 selection:text-white"
-                      id={`log-item-${log.id}`}
-                    >
-                      <div className="flex items-center justify-between font-mono text-[10px] text-slate-400 border-b border-slate-700 pb-1" id="log-meta">
-                        <span className="truncate max-w-[200px]">TO: <strong className="text-slate-200">{log.to}</strong></span>
-                        <span>{new Date(log.sent_at).toLocaleTimeString()}</span>
-                      </div>
-                      <div className="font-bold text-emerald-400 border-b border-slate-800/20 pb-0.5" id="log-subject">
-                        {log.subject}
-                      </div>
-                      <div className="text-[10px] text-slate-300 font-mono whitespace-pre-wrap leading-relaxed max-h-[120px] overflow-y-auto font-sans text-right" id="log-body" style={{ direction: 'rtl' }}>
-                        {log.body}
-                      </div>
-                      <div className="text-[9px] text-[#F59E0B] font-semibold text-center select-none" id="log-sent-indicator">
-                        ✓ RESEND API STATUS: OK (Status Deliver Code 202)
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="mt-3 pt-2 border-t border-slate-800 text-[9px] text-slate-500 font-sans text-center" id="outbox-hud-footer">
-                Using resend_secrets_vault callback edge function dynamically.
-              </div>
-            </div>
-          )}
-        </div>
       )}
 
     </div>
