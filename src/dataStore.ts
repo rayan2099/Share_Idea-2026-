@@ -902,19 +902,19 @@ export async function updateSubmissionAdminFieldsInSupabase(
   id: string,
   update: { status?: SubmissionStatus; score?: number | null; admin_notes?: string }
 ): Promise<Submission | null> {
-  const { data, error } = await supabase
-    .from('submissions')
-    .update(update)
-    .eq('id', id)
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc('update_submission_review', {
+    submission_id: id,
+    review_status: update.status ?? null,
+    review_score: update.score ?? null,
+    review_notes: update.admin_notes ?? null
+  });
 
   if (error) {
-    console.warn('Supabase submission update failed, using local fallback:', error.message);
-    return updateSubmissionAdminFields(id, update);
+    console.error('Supabase submission review update failed:', error);
+    throw new Error(error.message);
   }
 
-  return data as Submission;
+  return Array.isArray(data) ? data[0] as Submission : data as Submission;
 }
 
 // Trigger simulated emails (Resend & Supabase Edge Function)

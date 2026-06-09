@@ -30,7 +30,7 @@ import { Logo } from './Logo';
 interface AdminSubmissionsProps {
   lang: Language;
   submissions: Submission[];
-  onUpdateAdminFields: (id: string, update: { status?: SubmissionStatus; score?: number | null; admin_notes?: string }) => void;
+  onUpdateAdminFields: (id: string, update: { status?: SubmissionStatus; score?: number | null; admin_notes?: string }) => void | Promise<void>;
 }
 
 export default function AdminSubmissions({ lang, submissions, onUpdateAdminFields }: AdminSubmissionsProps) {
@@ -51,6 +51,8 @@ export default function AdminSubmissions({ lang, submissions, onUpdateAdminField
   const [editScore, setEditScore] = useState<number>(0);
   const [editNotes, setEditNotes] = useState('');
   const [showSaveToast, setShowSaveToast] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [isSavingEvaluation, setIsSavingEvaluation] = useState(false);
 
   // Parse Date nicely
   const formatDateStr = (dateStr: string): string => {
@@ -594,30 +596,37 @@ This file simulates the uploaded document securely within the AI Studio preview 
   };
 
   // Save current evaluated state back
-  const handleSaveEvaluation = () => {
+  const handleSaveEvaluation = async () => {
     if (!viewingSubmission) return;
-    
-    // Update store
-    onUpdateAdminFields(viewingSubmission.id, {
-      status: editStatus,
-      score: editScore > 0 ? editScore : null,
-      admin_notes: editNotes
-    });
 
-    // Update locally highlighted mock too so no stale fields lag in model UI
-    setViewingSubmission(prev => prev ? {
-      ...prev,
-      status: editStatus,
-      score: editScore > 0 ? editScore : null,
-      admin_notes: editNotes
-    } : null);
+    setSaveError('');
+    setIsSavingEvaluation(true);
 
-    // Show indicator
-    setShowSaveToast(true);
-    setTimeout(() => {
-      setShowSaveToast(false);
-      setViewingSubmission(null);
-    }, 1500);
+    try {
+      const update = {
+        status: editStatus,
+        score: editScore > 0 ? editScore : null,
+        admin_notes: editNotes
+      };
+
+      await onUpdateAdminFields(viewingSubmission.id, update);
+
+      setViewingSubmission(prev => prev ? {
+        ...prev,
+        ...update
+      } : null);
+
+      setShowSaveToast(true);
+      setTimeout(() => {
+        setShowSaveToast(false);
+        setViewingSubmission(null);
+      }, 1500);
+    } catch (error) {
+      console.error('Unable to save submission evaluation:', error);
+      setSaveError(lang === 'ar' ? 'تعذر حفظ التقييم في قاعدة البيانات.' : 'Could not save the evaluation in the database.');
+    } finally {
+      setIsSavingEvaluation(false);
+    }
   };
 
   const handleCheckboxToggleAll = () => {
@@ -1160,12 +1169,19 @@ This file simulates the uploaded document securely within the AI Studio preview 
                   <button
                     onClick={handleSaveEvaluation}
                     type="button"
+                    disabled={isSavingEvaluation}
                     className="px-6 py-3 bg-[#F5C842] hover:bg-[#F5C842]/90 text-[#083D52] text-xs font-extrabold rounded-full border-0 cursor-pointer flex items-center gap-1.5"
                     id="btn-save-evaluation"
                   >
                     <Check className="w-4 h-4" />
-                    <span>{t.saveNotes}</span>
+                    <span>{isSavingEvaluation ? (lang === 'ar' ? 'جاري الحفظ...' : 'Saving...') : t.saveNotes}</span>
                   </button>
+
+                  {saveError && (
+                    <span className="text-xs text-rose-300 font-bold bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg" id="save-error-banner">
+                      {saveError}
+                    </span>
+                  )}
 
                   {showSaveToast && (
                     <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/15 px-3 py-1.5 rounded-lg animate-fade-in" id="save-toast-banner">
