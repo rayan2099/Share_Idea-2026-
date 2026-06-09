@@ -410,11 +410,23 @@ export default function AdminSettings({
                         {mod.email}
                       </span>
                       <span className="text-[10px] text-[#B0D4E0]/60 font-mono text-left block" style={{ direction: 'ltr' }}>
-                        {mod.is_active === false ? 'INACTIVE' : 'ACTIVE'} • Added: {new Date(mod.created_at).toLocaleDateString()}
+                        Added: {new Date(mod.created_at).toLocaleDateString()}
                       </span>
                     </div>
 
-                    {adminRole === 'main' ? (
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-extrabold font-ar ${
+                        mod.is_active === false
+                          ? 'border-rose-500/35 bg-rose-500/10 text-rose-300'
+                          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                      }`}>
+                        {mod.is_active === false
+                          ? (lang === 'ar' ? 'غير مصرح' : 'Not Authorized')
+                          : (lang === 'ar' ? 'مصرح له بالدخول' : 'Authorized')
+                        }
+                      </span>
+
+                      {adminRole === 'main' ? (
                       <button
                         onClick={() => handleDeleteMod(mod.id)}
                         disabled={mod.is_active === false}
@@ -423,11 +435,8 @@ export default function AdminSettings({
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    ) : (
-                      <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        {lang === 'ar' ? 'معتمد' : 'ACTIVE_MOD'}
-                      </span>
-                    )}
+                      ) : null}
+                    </div>
                   </div>
                 ))}
               </div>
