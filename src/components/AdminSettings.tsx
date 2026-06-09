@@ -76,7 +76,7 @@ export default function AdminSettings({
     if (adminRole === 'main') {
       void loadModerators();
     }
-  }, []);
+  }, [adminRole]);
 
   const loadModerators = async () => {
     setIsModsLoading(true);
@@ -207,22 +207,8 @@ export default function AdminSettings({
         </div>
       </section>
 
-      {/* Role Alert warning if not main admin */}
-      {adminRole !== 'main' && (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs leading-relaxed flex items-start gap-3 font-ar">
-          <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400 mt-0.5" />
-          <div>
-            <span className="font-bold block text-sm mb-1">
-              {lang === 'ar' ? 'تنبيه الصلاحيات المحدودة' : 'Limited Privileges Notice'}
-            </span>
-            {lang === 'ar' 
-              ? 'أنت مسجل كمشرف فرعي (مشرف). تقتصر صلاحية تغيير بيانات الحساب الأساسية أو تعيين مشرفين جدد وإدارة كلمات مرورهم على المشرف الرئيسي فقط.' 
-              : 'You are signed in as a sub-moderator. Only the Main Administrator is authorized to modify core system credentials or add and remove other sub-moderators.'}
-          </div>
-        </div>
-      )}
-
       {/* 2. Main Admin Edit Profile Form - Restricted to main admin */}
+      {adminRole === 'main' && (
       <section className="bg-[#083D52] border border-white/8 rounded-xl p-6 transition-all" id="settings-main-admin-edit">
         <h3 className="text-[#F5C842] font-semibold text-base mb-4 flex items-center gap-2.5 border-b border-white/8 pb-3 font-ar">
           <Key className="w-5 h-5 text-[#F5C842]" />
@@ -298,8 +284,10 @@ export default function AdminSettings({
           )}
         </form>
       </section>
+      )}
 
       {/* 3. Moderators Management Section - Restricted to main admin */}
+      {adminRole === 'main' && (
       <section className="bg-[#083D52] border border-white/8 rounded-xl p-6 transition-all" id="settings-add-sub-admins">
         <h3 className="text-[#F5C842] font-semibold text-base mb-4 flex items-center gap-2.5 border-b border-white/8 pb-3 font-ar">
           <Users className="w-5 h-5 text-[#F5C842]" />
@@ -442,6 +430,7 @@ export default function AdminSettings({
           </div>
         </div>
       </section>
+      )}
 
       {/* 4. Display Preferences Card */}
       <section className="bg-[#083D52] border border-white/8 rounded-xl p-6 transition-all" id="settings-visual-section">
