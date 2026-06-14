@@ -6,108 +6,14 @@ const supabaseAnonKey = metaEnv.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Realistic premium mockup projects representing an Arabic incubator / startup hub
-export const MOCKUP_PROJECTS = [
-  {
-    id: 'mock-1',
-    title: 'منصة سندك التمويلية | Sanadak',
-    description: 'منصة ذكية متخصصة في التمويل متناهي الصغر وسد الفجوات التمويلية للأفراد ورواد الأعمال الناشئين عبر حلول تقنية مرنة متوافقة مع الشريعة وتعتمد على خوارزميات تقييم ائتماني متطورة تلائم تطلعات السوق المحلي.',
-    sector: 'التكنولوجيا المالية',
-    stage: 'نموذج أولي (MVP)',
-    image_url: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=600',
-    website_url: 'https://sanadak-fintech.example.com',
-    is_visible: true,
-    display_order: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'mock-2',
-    title: 'مساعد دراسات الذكي | Diraasat AI',
-    description: 'منظومة دراسية شاملة تستعين بالذكاء الاصطناعي لمساندة الطلاب والأكاديميين في تلخيص المحاضرات والبحوث، ورسم مسارات تعلم مخصصة تعزز التحصيل العلمي والمهني بأساليب تفاعلية مبتكرة.',
-    sector: 'الذكاء الاصطناعي',
-    stage: 'مرحلة التجريب والنمو',
-    image_url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=600',
-    website_url: 'https://diraasat-ai.example.com',
-    is_visible: true,
-    display_order: 2,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'mock-3',
-    title: 'مشروع حصاد الزراعي | Hasaad IoT',
-    description: 'مشروع ريادي يستهدف أتمتة البيوت المحمية والمنشآت المائية التقليدية بالاعتماد على مستشعرات إنترنت الأشياء والتحليلات السحابية لتنظيم الري وتقليص معدلات هدر المياه وزيادة الإنتاجية الخضراء.',
-    sector: 'التقنية الزراعية',
-    stage: 'جاهز للاستثمار التجاري',
-    image_url: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?auto=format&fit=crop&q=80&w=600',
-    website_url: 'https://hasaad-iot.example.com',
-    is_visible: true,
-    display_order: 3,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'mock-4',
-    title: 'تطبيق شفاء الطبي | Shefa Tech',
-    description: 'منصة رعاية صحية متكاملة تتيح للمستخدمين حجز الاستشارات الفورية مع كبار الأطباء والوصول الفوري إلى سجل طبي موحد مدعوم بالذكاء الاصطناعي لتحليل الفحوصات الدورية وصرف الوصفات المعتمدة.',
-    sector: 'التقنية الصحية',
-    stage: 'مرحلة نمو تجاري',
-    image_url: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=600',
-    website_url: 'https://shefa-tech.example.com',
-    is_visible: true,
-    display_order: 4,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'mock-5',
-    title: 'منصة مسار التعليمية | Masaar Edu',
-    description: 'منصة تعليمية تقدم مسارات متكاملة لتعليم البرمجة وتقنيات المستقبل للأطفال والناشئين بالاعتماد على التلعيب والتفاعل المباشر لبناء القدرات الرقمية للأجيال القادمة.',
-    sector: 'التقنية التعليمية',
-    stage: 'مرحلة التجريب والنمو',
-    image_url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=600',
-    website_url: 'https://masaar-edu.example.com',
-    is_visible: true,
-    display_order: 5,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'mock-6',
-    title: 'منظومة ساري اللوجستية | Sary Express',
-    description: 'حلول ذكية لإدارة سلاسل الإمداد والتوصيل السريع للمتاجر الإلكترونية الكبرى، تعتمد على خوارزميات التوزيع الجغرافي الذكي لتقليص زمن الشحن وحوسبة مسارات المندوبين بكفاءة متناهية.',
-    sector: 'الخدمات اللوجستية',
-    stage: 'جاهز للاستثمار التجاري',
-    image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=600',
-    website_url: 'https://sary-express.example.com',
-    is_visible: true,
-    display_order: 6,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-];
+export const MOCKUP_PROJECTS: any[] = [];
 
-// Helper to manage mock list in localStorage
 const getLocalProjects = (): any[] => {
-  const stored = localStorage.getItem('mockup_projects');
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      // If we added new hardcoded mockup projects, make sure to sync them up or replace the stale list
-      if (parsed.length >= MOCKUP_PROJECTS.length || parsed.some((p: any) => p.id.startsWith('mock-4'))) {
-        return parsed;
-      }
-    } catch (e) {
-      // fallback
-    }
-  }
-  localStorage.setItem('mockup_projects', JSON.stringify(MOCKUP_PROJECTS));
-  return MOCKUP_PROJECTS;
+  return [];
 };
 
-const saveLocalProjects = (projects: any[]) => {
-  localStorage.setItem('mockup_projects', JSON.stringify(projects));
+const saveLocalProjects = (_projects: any[]) => {
+  // Production data lives in Supabase only. Placeholder mode intentionally does not persist mock data.
 };
 
 // Check if credentials are placeholder
@@ -116,9 +22,7 @@ const isUsingMock = supabaseUrl.includes('placeholder') || supabaseAnonKey.inclu
 // Get all projects (public)
 export const getVisibleProjects = async () => {
   if (isUsingMock) {
-    return getLocalProjects()
-      .filter(p => p.is_visible)
-      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    return [];
   }
   try {
     const { data, error } = await supabase
@@ -130,17 +34,15 @@ export const getVisibleProjects = async () => {
     if (error) throw new Error(error.message);
     return data || [];
   } catch (err) {
-    console.warn('Supabase fetch failed, utilizing mockup fallback projects:', err);
-    return getLocalProjects()
-      .filter(p => p.is_visible)
-      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    console.warn('Supabase visible projects fetch failed:', err);
+    return [];
   }
 };
 
 // Get all projects (admin)
 export const getAllProjects = async () => {
   if (isUsingMock) {
-    return getLocalProjects().sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    return [];
   }
   try {
     const { data, error } = await supabase
@@ -151,8 +53,8 @@ export const getAllProjects = async () => {
     if (error) throw new Error(error.message);
     return data || [];
   } catch (err) {
-    console.warn('Supabase fetch failed, utilizing mockup fallback projects for admin view:', err);
-    return getLocalProjects().sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    console.warn('Supabase admin projects fetch failed:', err);
+    return [];
   }
 };
 

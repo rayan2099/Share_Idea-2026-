@@ -22,13 +22,11 @@ import {
 import { ContactMessage, Language, Submission, SubmissionStatus } from './types';
 import { translations } from './translations';
 import { 
-  getSubmissions, 
   getSubmissionsFromSupabase,
   createSubmissionInSupabase,
   updateSubmissionAdminFieldsInSupabase,
   updateSubmissionAssignmentInSupabase,
   getContactMessagesFromSupabase,
-  initDataStore,
 } from './dataStore';
 
 // Dynamic Sub-components imports
@@ -53,11 +51,6 @@ import { Logo } from './components/Logo';
 import { supabase } from './supabaseService';
 
 export default function App() {
-  // Initialize Database on load
-  useEffect(() => {
-    initDataStore();
-  }, []);
-
   // 1. Language Preference State (Stored in localStorage)
   const [lang, setLang] = useState<Language>(() => {
     if (typeof window !== 'undefined') {
@@ -214,20 +207,32 @@ export default function App() {
     });
   };
 
-  // 5. Shared submissions list state
-  const [submissionsList, setSubmissionsList] = useState<Submission[]>(() => getSubmissions());
+  // 5. Shared admin data state. Start empty so deleted/demo local data never flashes before Supabase loads.
+  const [submissionsList, setSubmissionsList] = useState<Submission[]>([]);
   const [contactMessagesList, setContactMessagesList] = useState<ContactMessage[]>([]);
   
   // Last Reference ID submitted for success screen
   const [lastSubmittedRef, setLastSubmittedRef] = useState<string>('');
 
-  // Sync submissions and contact messages lists when navigating in Admin
+  // Sync submissions and contact messages lists when navigating in Admin.
   useEffect(() => {
-    if (currentPath.startsWith('/admin') || currentPath === '/') {
-      getSubmissionsFromSupabase().then(setSubmissionsList);
-      getContactMessagesFromSupabase().then(setContactMessagesList);
+    let cancelled = false;
+
+    if (currentPath.startsWith('/admin') && isAdminAuthenticated) {
+      Promise.all([
+        getSubmissionsFromSupabase(),
+        getContactMessagesFromSupabase()
+      ]).then(([submissions, messages]) => {
+        if (cancelled) return;
+        setSubmissionsList(submissions);
+        setContactMessagesList(messages);
+      });
     }
-  }, [currentPath]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPath, isAdminAuthenticated]);
 
   // Form submit handler
   const handleFormSubmission = async (payload: any) => {
