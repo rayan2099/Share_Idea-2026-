@@ -11,7 +11,7 @@ import { uploadFile } from '../dataStore';
 
 interface SubmissionFormProps {
   lang: Language;
-  onSubmit: (formData: any) => void;
+  onSubmit: (formData: any) => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -57,6 +57,8 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
 
   // Validation feedback per step
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
   const [founderName, setFounderName] = useState('');
@@ -100,6 +102,8 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
   const [pitchFileType, setPitchFileType] = useState<string>('');
   const [pitchUrl, setPitchUrl] = useState<string>('');
   const [heardFrom, setHeardFrom] = useState('');
+  const [isUploadingPitch, setIsUploadingPitch] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   // Dropdown refs to detect click outside
   const revModelRef = useRef<HTMLDivElement>(null);
@@ -222,7 +226,10 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
     return Object.keys(stepErrors).length === 0;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (isSubmitting || isUploadingPitch) return;
+    setSubmitError('');
+
     if (validateStep(currentStep)) {
       if (currentStep < 5) {
         setCurrentStep(prev => prev + 1);
@@ -273,8 +280,21 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
           file_type: pitchFileType || undefined,
           heard_from: heardFrom
         };
-        onSubmit(payload);
+        try {
+          setIsSubmitting(true);
+          await onSubmit(payload);
+        } catch (error) {
+          setSubmitError(
+            error instanceof Error
+              ? error.message
+              : (lang === 'ar' ? 'تعذر إرسال الفكرة. يرجى المحاولة مرة أخرى.' : 'Could not submit the idea. Please try again.')
+          );
+        } finally {
+          setIsSubmitting(false);
+        }
       }
+    } else if (currentStep === 5) {
+      setSubmitError(lang === 'ar' ? 'يرجى تعبئة الحقول المطلوبة قبل إرسال الفكرة.' : 'Please complete the required fields before submitting.');
     }
   };
 
@@ -317,11 +337,13 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setUploadError('');
       if (file.size > 20 * 1024 * 1024) {
-        alert(lang === 'ar' ? 'الملف كبير جداً، الحد الأقصى 20 ميغابايت' : 'File is too large! Maximum limit is 20MB.');
+        setUploadError(lang === 'ar' ? 'الملف كبير جداً، الحد الأقصى 20 ميغابايت' : 'File is too large. Maximum limit is 20MB.');
         return;
       }
       try {
+        setIsUploadingPitch(true);
         setPitchFileName(file.name);
         setPitchFileSize(file.size);
         setPitchFileType(file.type || 'application/octet-stream');
@@ -331,6 +353,10 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
         setPitchFileUrl(storageUrl);
       } catch (err) {
         console.error('File upload error:', err);
+        setPitchFileUrl('');
+        setUploadError(lang === 'ar' ? 'تعذر رفع الملف. يمكنك إرسال الطلب بدون ملف أو وضع رابط العرض التقديمي.' : 'Could not upload the file. You can submit without a file or add a pitch link.');
+      } finally {
+        setIsUploadingPitch(false);
       }
     }
   };
@@ -1151,6 +1177,17 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
                   </>
                 )}
               </div>
+              {isUploadingPitch && (
+                <p className="text-xs text-[#F97316] font-semibold mt-2 text-center" id="pitch-upload-progress">
+                  {lang === 'ar' ? 'جاري رفع الملف، يرجى الانتظار...' : 'Uploading file, please wait...'}
+                </p>
+              )}
+              {uploadError && (
+                <p className="text-xs text-red-500 flex items-center gap-1 mt-2" id="error-pitch-upload">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {uploadError}
+                </p>
+              )}
 
               {/* URL fallback divider */}
               <div className="flex items-center gap-4 my-2" id="pitch-divider">
@@ -1218,17 +1255,32 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
       </div>
 
       {/* FOOTER NAVIGATION ACTIONS */}
+      {(submitError || isUploadingPitch) && (
+        <div className={`mt-6 rounded-xl border px-4 py-3 text-sm font-semibold flex items-center gap-2 ${
+          submitError
+            ? 'border-red-200 bg-red-50 text-red-700'
+            : 'border-orange-200 bg-orange-50 text-orange-700'
+        }`} id="submission-final-feedback">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>
+            {submitError || (lang === 'ar' ? 'انتظر حتى ينتهي رفع الملف قبل إرسال الفكرة.' : 'Please wait until the file upload finishes before submitting.')}
+          </span>
+        </div>
+      )}
+
       <div className="mt-8 flex items-center justify-between" id="form-card-navigation">
         {/* Next Button / Submit (Always situated bottom LEFT) */}
         <button
+          type="button"
           onClick={handleNext}
-          className="px-6 py-3.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-full font-bold text-sm cursor-pointer transition-all shadow-md flex items-center gap-2 select-none order-1"
+          disabled={isSubmitting || isUploadingPitch}
+          className="px-6 py-3.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-full font-bold text-sm cursor-pointer transition-all shadow-md flex items-center gap-2 select-none order-1 disabled:opacity-60 disabled:cursor-not-allowed"
           id="btn-nav-next"
         >
           {currentStep === 5 ? (
             <>
               <Check className="w-4 h-4" />
-              <span>{t.submit}</span>
+              <span>{isSubmitting ? (lang === 'ar' ? 'جاري الإرسال...' : 'Submitting...') : t.submit}</span>
             </>
           ) : (
             <>
@@ -1240,8 +1292,10 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
 
         {/* Back Link (Always situated bottom RIGHT) */}
         <button
+          type="button"
           onClick={handleBack}
-          className="text-gray-400 hover:text-gray-600 font-bold transition-all flex items-center gap-1 text-sm bg-transparent border-0 cursor-pointer select-none order-2"
+          disabled={isSubmitting}
+          className="text-gray-400 hover:text-gray-600 font-bold transition-all flex items-center gap-1 text-sm bg-transparent border-0 cursor-pointer select-none order-2 disabled:opacity-60 disabled:cursor-not-allowed"
           id="btn-nav-back"
         >
           <span className={`inline-block ${lang === 'ar' ? 'rotate-0' : 'rotate-180'}`}>→</span>

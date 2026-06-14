@@ -239,7 +239,7 @@ export default function App() {
       setLastSubmittedRef(created.reference_id);
       navigate('/submit-success');
     } catch (err: any) {
-      alert(lang === 'ar'
+      throw new Error(lang === 'ar'
         ? `تعذر حفظ الفكرة في قاعدة البيانات: ${err.message || 'خطأ غير معروف'}`
         : `Could not save the idea to the database: ${err.message || 'Unknown error'}`
       );
