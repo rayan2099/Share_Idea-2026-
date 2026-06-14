@@ -86,6 +86,23 @@ async function findUserByEmail(supabaseUrl: string, serviceRoleKey: string, emai
   return users.find((user: { id: string; email?: string }) => user.email?.toLowerCase() === email.toLowerCase()) || null;
 }
 
+async function findAdminProfileByEmail(supabaseUrl: string, serviceRoleKey: string, email: string) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/admin_profiles?email=eq.${encodeURIComponent(email)}&select=id,email,role,is_active&limit=1`, {
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`
+    }
+  });
+
+  const result = await response.json().catch(() => []);
+
+  if (!response.ok) {
+    throw new Error(result?.message || 'Could not verify admin profile');
+  }
+
+  return Array.isArray(result) ? result[0] : null;
+}
+
 async function createAuthUser(supabaseUrl: string, serviceRoleKey: string, email: string, password: string) {
   const response = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
     method: 'POST',
@@ -219,6 +236,11 @@ Deno.serve(async (req) => {
 
       if (password.length < 8) {
         return jsonResponse({ error: 'Password must be at least 8 characters' }, 400);
+      }
+
+      const existingProfile = await findAdminProfileByEmail(supabaseUrl, serviceRoleKey, email);
+      if (existingProfile?.role === 'main') {
+        return jsonResponse({ error: 'This email is already the main admin and cannot be added as a sub-admin' }, 400);
       }
 
       const authUser = await createAuthUser(supabaseUrl, serviceRoleKey, email, password);
