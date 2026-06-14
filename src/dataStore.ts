@@ -947,6 +947,13 @@ export async function getSubmissionsFromSupabase(): Promise<Submission[]> {
   return (data || []) as Submission[];
 }
 
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+function isTransientNetworkError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || '');
+  return /load failed|failed to fetch|networkerror|network request failed|fetch|timeout/i.test(message);
+}
+
 export async function createSubmissionInSupabase(
   newSub: Omit<Submission, 'id' | 'reference_id' | 'created_at' | 'status' | 'score' | 'admin_notes' | 'email_sent'> & Record<string, any>
 ): Promise<Submission> {
@@ -963,13 +970,49 @@ export async function createSubmissionInSupabase(
     updated_at: createdAt
   };
 
-  const { error } = await supabase
-    .from('submissions')
-    .insert(payload);
+  let lastError: unknown = null;
 
-  if (error) {
-    console.error('Supabase submission insert failed:', error);
-    throw new Error(error.message);
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const { error } = await supabase
+        .from('submissions')
+        .insert(payload);
+
+      if (!error) {
+        lastError = null;
+        break;
+      }
+
+      const message = error.message || '';
+      const duplicateRequest = error.code === '23505' || /duplicate key/i.test(message);
+
+      if (duplicateRequest) {
+        lastError = null;
+        break;
+      }
+
+      lastError = error;
+
+      if (!isTransientNetworkError(error) || attempt === 3) {
+        break;
+      }
+    } catch (error) {
+      lastError = error;
+
+      if (!isTransientNetworkError(error) || attempt === 3) {
+        break;
+      }
+    }
+
+    await wait(500 * attempt);
+  }
+
+  if (lastError) {
+    console.error('Supabase submission insert failed:', lastError);
+    if (isTransientNetworkError(lastError)) {
+      throw new Error('NETWORK_SUBMISSION_FAILED');
+    }
+    throw new Error(lastError instanceof Error ? lastError.message : 'Submission could not be saved');
   }
 
   const created = payload as Submission;

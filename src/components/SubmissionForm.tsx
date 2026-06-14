@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, ChevronDown, Check, Trash2, ArrowLeft, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
-import { Language, Submission } from '../types';
+import { Upload, ChevronDown, Check, Trash2, AlertCircle } from 'lucide-react';
+import { Language } from '../types';
 import { translations } from '../translations';
 import { uploadFile } from '../dataStore';
 
@@ -333,7 +333,7 @@ export default function SubmissionForm({ lang, onSubmit, onCancel }: SubmissionF
     }
   };
 
-  // File drag & selection upload emulators
+  // File drag & selection upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {

@@ -239,9 +239,15 @@ export default function App() {
       setLastSubmittedRef(created.reference_id);
       navigate('/submit-success');
     } catch (err: any) {
+      const message = err?.message || '';
+      const isNetworkIssue = message === 'NETWORK_SUBMISSION_FAILED' || /load failed|failed to fetch|network/i.test(message);
       throw new Error(lang === 'ar'
-        ? `تعذر حفظ الفكرة في قاعدة البيانات: ${err.message || 'خطأ غير معروف'}`
-        : `Could not save the idea to the database: ${err.message || 'Unknown error'}`
+        ? (isNetworkIssue
+          ? 'تعذر الاتصال مؤقتاً. يرجى التأكد من اتصال الإنترنت والمحاولة مرة أخرى.'
+          : `تعذر حفظ الفكرة في قاعدة البيانات: ${message || 'خطأ غير معروف'}`)
+        : (isNetworkIssue
+          ? 'Temporary connection issue. Please check your internet connection and try again.'
+          : `Could not save the idea to the database: ${message || 'Unknown error'}`)
       );
     }
   };
