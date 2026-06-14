@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Search, 
   Filter, 
@@ -20,20 +20,24 @@ import {
   PhoneCall, 
   Grid,
   Download,
-  Mail
+  Mail,
+  UserCheck
 } from 'lucide-react';
-import { Submission, SubmissionStatus, Language } from '../types';
+import { Submission, SubmissionStatus, Language, Moderator } from '../types';
 import { translations } from '../translations';
-import { downloadFile } from '../dataStore';
+import { downloadFile, getModeratorsFromSupabase } from '../dataStore';
 import { Logo } from './Logo';
 
 interface AdminSubmissionsProps {
   lang: Language;
   submissions: Submission[];
+  adminEmail: string;
+  adminRole: 'main' | 'moderator';
   onUpdateAdminFields: (id: string, update: { status?: SubmissionStatus; score?: number | null; admin_notes?: string }) => void | Promise<void>;
+  onUpdateAssignment: (id: string, assignedAdminId: string | null) => void | Promise<void>;
 }
 
-export default function AdminSubmissions({ lang, submissions, onUpdateAdminFields }: AdminSubmissionsProps) {
+export default function AdminSubmissions({ lang, submissions, adminEmail, adminRole, onUpdateAdminFields, onUpdateAssignment }: AdminSubmissionsProps) {
   const t = translations[lang];
 
   // Filters
@@ -50,9 +54,19 @@ export default function AdminSubmissions({ lang, submissions, onUpdateAdminField
   const [editStatus, setEditStatus] = useState<SubmissionStatus>('new');
   const [editScore, setEditScore] = useState<number>(0);
   const [editNotes, setEditNotes] = useState('');
+  const [editAssignedAdminId, setEditAssignedAdminId] = useState('');
+  const [moderators, setModerators] = useState<Moderator[]>([]);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [isSavingEvaluation, setIsSavingEvaluation] = useState(false);
+
+  useEffect(() => {
+    if (adminRole !== 'main') return;
+
+    getModeratorsFromSupabase()
+      .then(list => setModerators(list.filter(mod => mod.is_active !== false)))
+      .catch(error => console.warn('Could not load moderators for delegation:', error));
+  }, [adminRole]);
 
   // Parse Date nicely
   const formatDateStr = (dateStr: string): string => {
@@ -227,6 +241,13 @@ This file simulates the uploaded document securely within the AI Studio preview 
     return t[`filter_${status}` as keyof typeof t] || status;
   };
 
+  const getAssignedLabel = (sub: Submission) => {
+    if (!sub.assigned_admin_email) {
+      return lang === 'ar' ? 'غير مفوض' : 'Unassigned';
+    }
+    return sub.assigned_admin_email;
+  };
+
   // Stage Translate
   const getStageLabel = (stage: string) => {
     return t[`stage_${stage}` as keyof typeof t] || stage;
@@ -238,6 +259,7 @@ This file simulates the uploaded document securely within the AI Studio preview 
     setEditStatus(sub.status);
     setEditScore(sub.score || 0);
     setEditNotes(sub.admin_notes || '');
+    setEditAssignedAdminId(sub.assigned_admin_id || '');
   };
 
   const handleDownloadPDF = () => {
@@ -611,9 +633,18 @@ This file simulates the uploaded document securely within the AI Studio preview 
 
       await onUpdateAdminFields(viewingSubmission.id, update);
 
+      if (adminRole === 'main' && editAssignedAdminId !== (viewingSubmission.assigned_admin_id || '')) {
+        await onUpdateAssignment(viewingSubmission.id, editAssignedAdminId || null);
+      }
+
       setViewingSubmission(prev => prev ? {
         ...prev,
-        ...update
+        ...update,
+        assigned_admin_id: adminRole === 'main' ? (editAssignedAdminId || null) : prev.assigned_admin_id,
+        assigned_admin_email: adminRole === 'main'
+          ? (moderators.find(mod => mod.id === editAssignedAdminId)?.email || null)
+          : prev.assigned_admin_email,
+        assigned_at: adminRole === 'main' && editAssignedAdminId !== (prev.assigned_admin_id || '') ? new Date().toISOString() : prev.assigned_at
       } : null);
 
       setShowSaveToast(true);
@@ -650,8 +681,12 @@ This file simulates the uploaded document securely within the AI Studio preview 
     }
   };
 
+  const visibleSubmissions = adminRole === 'main'
+    ? submissions
+    : submissions.filter(sub => (sub.assigned_admin_email || '').toLowerCase() === adminEmail.toLowerCase());
+
   // Filter Submissions
-  const filteredSubmissions = submissions.filter(sub => {
+  const filteredSubmissions = visibleSubmissions.filter(sub => {
     const matchesSearch = 
       sub.project_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.founder_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -718,8 +753,8 @@ This file simulates the uploaded document securely within the AI Studio preview 
       <div className="flex items-center justify-between text-xs text-[#B0D4E0] font-sans" id="table-rows-meta-strip">
         <div>
           {lang === 'ar' 
-            ? `عرض ${filteredSubmissions.length} من أصل ${submissions.length} طلبات` 
-            : `Showing ${filteredSubmissions.length} of ${submissions.length} items`
+            ? `عرض ${filteredSubmissions.length} من أصل ${visibleSubmissions.length} طلبات` 
+            : `Showing ${filteredSubmissions.length} of ${visibleSubmissions.length} items`
           }
         </div>
         {selectedIds.length > 0 && (
@@ -748,6 +783,11 @@ This file simulates the uploaded document securely within the AI Studio preview 
                 <th className="py-4 px-4 text-center font-bold" style={{ fontSize: '13px' }}>{t.col_founder}</th>
                 <th className="py-4 px-4 text-center font-bold" style={{ fontSize: '13px' }}>{t.col_stage}</th>
                 <th className="py-4 px-4 text-center font-bold" style={{ fontSize: '13px' }}>{t.col_score}</th>
+                {adminRole === 'main' && (
+                  <th className="py-4 px-4 text-center font-bold" style={{ fontSize: '13px' }}>
+                    {lang === 'ar' ? 'مفوض إلى' : 'Assigned To'}
+                  </th>
+                )}
                 <th className="py-4 px-4 text-center font-bold" style={{ fontSize: '13px' }}>{t.col_status}</th>
                 <th className="py-4 px-4 text-center font-bold" style={{ fontSize: '13px' }}>{t.col_date}</th>
                 <th className="py-4 px-4 text-center font-semibold" style={{ fontSize: '13px' }}>{t.col_actions}</th>
@@ -757,7 +797,7 @@ This file simulates the uploaded document securely within the AI Studio preview 
             <tbody className="divide-y divide-white/5" id="table-body">
               {filteredSubmissions.length === 0 ? (
                 <tr id="empty-table-row">
-                  <td colSpan={8} className="py-16 text-center text-[var(--secondary-text)]/70 font-ar flex flex-col items-center justify-center gap-3" id="empty-table-cell" style={{ display: 'table-cell' }}>
+                  <td colSpan={adminRole === 'main' ? 9 : 8} className="py-16 text-center text-[var(--secondary-text)]/70 font-ar flex flex-col items-center justify-center gap-3" id="empty-table-cell" style={{ display: 'table-cell' }}>
                     <div className="flex justify-center mb-3" style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}>
                       <Logo size="sm" />
                     </div>
@@ -878,6 +918,20 @@ This file simulates the uploaded document securely within the AI Studio preview 
                           <span className="text-[#B0D4E0]/40 font-mono text-xs">—</span>
                         )}
                       </td>
+
+                      {/* Status indicator badge */}
+                      {adminRole === 'main' && (
+                        <td className="py-4 px-4 text-center">
+                          <span className={`inline-flex max-w-[180px] items-center justify-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                            sub.assigned_admin_email
+                              ? 'border-[#F5C842]/25 bg-[#F5C842]/10 text-[#F5C842]'
+                              : 'border-white/10 bg-white/5 text-[#B0D4E0]'
+                          }`}>
+                            <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate" dir="ltr">{getAssignedLabel(sub)}</span>
+                          </span>
+                        </td>
+                      )}
 
                       {/* Status indicator badge */}
                       <td className="py-4 px-4 text-center">
@@ -1154,6 +1208,35 @@ This file simulates the uploaded document securely within the AI Studio preview 
                     </div>
                   </div>
                 </div>
+
+                {adminRole === 'main' && (
+                  <div className="flex flex-col gap-2" id="eval-assignment-box">
+                    <label className="text-xs font-bold text-[#B0D4E0] flex items-center gap-1.5">
+                      <UserCheck className="w-4 h-4 text-[#F5C842]" />
+                      <span>{lang === 'ar' ? 'تفويض الطلب إلى مشرف فرعي' : 'Delegate idea to sub-admin'}</span>
+                    </label>
+                    <select
+                      value={editAssignedAdminId}
+                      onChange={e => setEditAssignedAdminId(e.target.value)}
+                      className="w-full p-2.5 bg-[#0A4F68] border border-white/10 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-[#F5C842] cursor-pointer"
+                      id="eval-select-assigned-admin"
+                    >
+                      <option value="" className="bg-[#0A4F68] text-white">
+                        {lang === 'ar' ? 'غير مفوض حالياً' : 'Not assigned'}
+                      </option>
+                      {moderators.map(mod => (
+                        <option key={mod.id} value={mod.id} className="bg-[#0A4F68] text-white">
+                          {mod.email}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-[#B0D4E0]/70">
+                      {lang === 'ar'
+                        ? 'بعد التفويض سيظهر هذا الطلب للمشرف الفرعي المحدد داخل صفحة الطلبات.'
+                        : 'After delegation, this request appears in the selected sub-admin requests page.'}
+                    </p>
+                  </div>
+                )}
 
                 {/* Admin Notes custom remarks */}
                 <div className="flex flex-col gap-2" id="eval-notes-box">

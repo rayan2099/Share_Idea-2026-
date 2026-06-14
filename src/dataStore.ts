@@ -1001,6 +1001,23 @@ export async function updateSubmissionAdminFieldsInSupabase(
   return Array.isArray(data) ? data[0] as Submission : data as Submission;
 }
 
+export async function updateSubmissionAssignmentInSupabase(
+  id: string,
+  assignedAdminId: string | null
+): Promise<Submission | null> {
+  const { data, error } = await supabase.rpc('assign_submission_to_admin', {
+    submission_id: id,
+    assigned_admin_id: assignedAdminId
+  });
+
+  if (error) {
+    console.error('Supabase submission assignment failed:', error);
+    throw new Error(error.message);
+  }
+
+  return Array.isArray(data) ? data[0] as Submission : data as Submission;
+}
+
 async function sendEmailNotification(payload: Record<string, unknown>): Promise<void> {
   const { error } = await supabase.functions.invoke('send-email', {
     body: payload

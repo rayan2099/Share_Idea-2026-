@@ -26,6 +26,7 @@ import {
   getSubmissionsFromSupabase,
   createSubmissionInSupabase,
   updateSubmissionAdminFieldsInSupabase,
+  updateSubmissionAssignmentInSupabase,
   getContactMessages,
   getContactMessagesFromSupabase,
   initDataStore,
@@ -252,6 +253,12 @@ export default function App() {
     setSubmissionsList(latest);
   };
 
+  const handleUpdateAssignment = async (id: string, assignedAdminId: string | null) => {
+    await updateSubmissionAssignmentInSupabase(id, assignedAdminId);
+    const latest = await getSubmissionsFromSupabase();
+    setSubmissionsList(latest);
+  };
+
   // Redirect gate: If on admin private pages but unauthenticated, fallback to Login
   useEffect(() => {
     if (['/admin/dashboard', '/admin/submissions', '/admin/messages', '/admin/settings', '/admin/projects'].includes(currentPath) && !isAdminAuthenticated) {
@@ -260,9 +267,12 @@ export default function App() {
   }, [currentPath, isAdminAuthenticated]);
 
   const t = translations[lang];
+  const adminScopedSubmissions = adminRole === 'main'
+    ? submissionsList
+    : submissionsList.filter(sub => (sub.assigned_admin_email || '').toLowerCase() === adminEmail.toLowerCase());
 
   // Count columns helper
-  const countNewSubmissions = submissionsList.filter(s => s.status === 'new').length;
+  const countNewSubmissions = adminScopedSubmissions.filter(s => s.status === 'new').length;
   const countUnreadContactMessages = contactMessagesList.filter(m => !m.is_read).length;
 
   // --- RENDER ROUTING DECISIONS ---
@@ -506,10 +516,10 @@ export default function App() {
               {/* Quick statistics badge & Sign out to the top left */}
               <div className="flex items-center gap-2.5 font-num" id="canvas-header-indicators">
                 <span className="px-3 py-1.5 bg-[var(--card-bg)] text-white font-bold text-xs rounded-full inline-block border border-white/8 shadow-md">
-                  {lang === 'ar' ? `إجمالي الأفكار: ${submissionsList.length}` : `All Ideas: ${submissionsList.length}`}
+                  {lang === 'ar' ? `إجمالي الأفكار: ${adminScopedSubmissions.length}` : `All Ideas: ${adminScopedSubmissions.length}`}
                 </span>
                 <span className="px-3 py-1.5 bg-[var(--card-bg)] text-[var(--accent-gold)] font-bold text-xs rounded-full inline-block border border-[var(--accent-gold)]/20 shadow-md">
-                  {lang === 'ar' ? `المشاريع الواعدة: ${submissionsList.filter(s => s.status === 'promising').length}` : `Promising: ${submissionsList.filter(s => s.status === 'promising').length}`}
+                  {lang === 'ar' ? `المشاريع الواعدة: ${adminScopedSubmissions.filter(s => s.status === 'promising').length}` : `Promising: ${adminScopedSubmissions.filter(s => s.status === 'promising').length}`}
                 </span>
 
                 <button
@@ -529,14 +539,17 @@ export default function App() {
             {currentPath === '/admin/dashboard' ? (
               <AdminDashboard 
                 lang={lang}
-                submissions={submissionsList}
+                submissions={adminScopedSubmissions}
                 onNavigate={(path) => navigate(path)}
               />
             ) : currentPath === '/admin/submissions' ? (
               <AdminSubmissions 
                 lang={lang}
                 submissions={submissionsList}
+                adminEmail={adminEmail}
+                adminRole={adminRole}
                 onUpdateAdminFields={handleUpdateEvaluation}
+                onUpdateAssignment={handleUpdateAssignment}
               />
             ) : currentPath === '/admin/messages' ? (
               <AdminMessages 

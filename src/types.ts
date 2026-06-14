@@ -38,6 +38,9 @@ export interface Submission {
   score: number | null; // scale 1-10 or 1-100 or rating
   admin_notes: string;
   equity_offered?: number; // الحصة المعروضة للمستثمرين بالشراكة
+  assigned_admin_id?: string | null;
+  assigned_admin_email?: string | null;
+  assigned_at?: string | null;
   created_at: string;
   email_sent: boolean;
 }
