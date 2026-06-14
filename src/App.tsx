@@ -19,7 +19,7 @@ import {
   Settings,
   Building2
 } from 'lucide-react';
-import { Language, Submission, SubmissionStatus } from './types';
+import { ContactMessage, Language, Submission, SubmissionStatus } from './types';
 import { translations } from './translations';
 import { 
   getSubmissions, 
@@ -27,7 +27,6 @@ import {
   createSubmissionInSupabase,
   updateSubmissionAdminFieldsInSupabase,
   updateSubmissionAssignmentInSupabase,
-  getContactMessages,
   getContactMessagesFromSupabase,
   initDataStore,
 } from './dataStore';
@@ -217,7 +216,7 @@ export default function App() {
 
   // 5. Shared submissions list state
   const [submissionsList, setSubmissionsList] = useState<Submission[]>(() => getSubmissions());
-  const [contactMessagesList, setContactMessagesList] = useState(() => getContactMessages());
+  const [contactMessagesList, setContactMessagesList] = useState<ContactMessage[]>([]);
   
   // Last Reference ID submitted for success screen
   const [lastSubmittedRef, setLastSubmittedRef] = useState<string>('');
@@ -277,9 +276,14 @@ export default function App() {
     ? submissionsList
     : submissionsList.filter(sub => (sub.assigned_admin_email || '').toLowerCase() === adminEmail.toLowerCase());
 
+  const adminScopedContactEmails = new Set(adminScopedSubmissions.map(sub => sub.email.toLowerCase()));
+  const adminScopedContactMessages = adminRole === 'main'
+    ? contactMessagesList
+    : contactMessagesList.filter(message => adminScopedContactEmails.has(message.email.toLowerCase()));
+
   // Count columns helper
   const countNewSubmissions = adminScopedSubmissions.filter(s => s.status === 'new').length;
-  const countUnreadContactMessages = contactMessagesList.filter(m => !m.is_read).length;
+  const countUnreadContactMessages = adminScopedContactMessages.filter(m => !m.is_read).length;
 
   // --- RENDER ROUTING DECISIONS ---
 
@@ -560,6 +564,9 @@ export default function App() {
             ) : currentPath === '/admin/messages' ? (
               <AdminMessages 
                 lang={lang}
+                adminEmail={adminEmail}
+                adminRole={adminRole}
+                submissions={submissionsList}
               />
             ) : currentPath === '/admin/projects' ? (
               <AdminProjects 

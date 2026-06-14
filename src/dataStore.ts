@@ -760,8 +760,8 @@ export async function getContactMessagesFromSupabase(): Promise<ContactMessage[]
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.warn('Supabase messages fetch failed, using local fallback:', error.message);
-    return getContactMessages();
+    console.warn('Supabase messages fetch failed:', error.message);
+    return [];
   }
 
   return (data || []) as ContactMessage[];

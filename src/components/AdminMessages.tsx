@@ -3,48 +3,52 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Mail, 
   Send, 
   Inbox, 
   Search, 
   CheckCircle, 
-  Eye, 
-  User, 
-  Clock, 
   RefreshCw,
   MessageSquare,
   AlertCircle,
   Trash2
 } from 'lucide-react';
-import { Language } from '../types';
+import { Language, Submission } from '../types';
 import { translations } from '../translations';
 import { 
-  getEmailLogs, 
   getContactMessagesFromSupabase, 
   markContactMessageAsReadInSupabase,
   deleteContactMessageInSupabase,
   getMessageRepliesFromSupabase,
   sendContactReplyInSupabase,
-  EmailLog,
 } from '../dataStore';
 import { ContactMessage, MessageReply } from '../types';
 
 interface AdminMessagesProps {
   lang: Language;
+  adminEmail: string;
+  adminRole: 'main' | 'moderator';
+  submissions: Submission[];
 }
 
-export default function AdminMessages({ lang }: AdminMessagesProps) {
+export default function AdminMessages({ lang, adminEmail, adminRole, submissions }: AdminMessagesProps) {
   const isAr = lang === 'ar';
   const t = translations[lang];
+  const isMainAdmin = adminRole === 'main';
+
+  const assignedContactEmails = useMemo(
+    () => new Set(
+      submissions
+        .filter(sub => (sub.assigned_admin_email || '').toLowerCase() === adminEmail.toLowerCase())
+        .map(sub => sub.email.toLowerCase())
+    ),
+    [adminEmail, submissions]
+  );
 
   // --- STATS & LIST CONTROLS ---
-  const [activeTab, setActiveTab] = useState<'outbox' | 'contact'>('contact');
   const [searchQuery, setSearchQuery] = useState('');
-  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
-  const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
   const [messageReplies, setMessageReplies] = useState<MessageReply[]>([]);
   const [replyBody, setReplyBody] = useState('');
@@ -90,7 +94,6 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      setEmailLogs(getEmailLogs());
       setContactMessages(await getContactMessagesFromSupabase());
     } finally {
       setIsLoading(false);
@@ -98,6 +101,10 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
   };
 
   const handleSelectMessage = async (message: ContactMessage) => {
+    if (!isMainAdmin && !assignedContactEmails.has(message.email.toLowerCase())) {
+      return;
+    }
+
     setSelectedMessage(message);
     setReplyBody('');
     setReplyStatus('');
@@ -111,8 +118,23 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (!selectedMessage) return;
+    if (!isMainAdmin && !assignedContactEmails.has(selectedMessage.email.toLowerCase())) {
+      setSelectedMessage(null);
+      setMessageReplies([]);
+      setReplyBody('');
+    }
+  }, [assignedContactEmails, isMainAdmin, selectedMessage]);
+
   // Update read status for contact messages
   const handleToggleReadStatus = async (id: string, currentRead: boolean) => {
+    if (!selectedMessage) return;
+    if (!isMainAdmin && !assignedContactEmails.has(selectedMessage.email.toLowerCase())) {
+      setReadUpdateError(isAr ? 'هذه الرسالة غير مفوضة لك.' : 'This message is not delegated to you.');
+      return;
+    }
+
     setReadUpdateError('');
     try {
       await markContactMessageAsReadInSupabase(id, !currentRead);
@@ -127,6 +149,10 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
 
   const handleSendReply = async () => {
     if (!selectedMessage) return;
+    if (!isMainAdmin && !assignedContactEmails.has(selectedMessage.email.toLowerCase())) {
+      setReplyError(isAr ? 'لا يمكنك الرد إلا على رسائل الأفكار المفوضة لك.' : 'You can only reply to messages for ideas delegated to you.');
+      return;
+    }
 
     const trimmedReply = replyBody.trim();
     setReplyStatus('');
@@ -165,6 +191,10 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
 
   const handleDeleteMessage = async () => {
     if (!selectedMessage) return;
+    if (!isMainAdmin) {
+      setDeleteMessageError(isAr ? 'حذف الرسائل متاح للمشرف الرئيسي فقط.' : 'Only the main admin can delete messages.');
+      return;
+    }
 
     const confirmed = window.confirm(
       isAr
@@ -199,18 +229,11 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
   };
 
   // --- FILTERED DATA LISTINGS ---
-  const filteredEmails = emailLogs.filter(email => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
-    return (
-      email.to.toLowerCase().includes(query) ||
-      email.subject.toLowerCase().includes(query) ||
-      email.body.toLowerCase().includes(query) ||
-      email.sender.toLowerCase().includes(query)
-    );
-  });
+  const scopedContactMessages = isMainAdmin
+    ? contactMessages
+    : contactMessages.filter(msg => assignedContactEmails.has(msg.email.toLowerCase()));
 
-  const filteredContacts = contactMessages.filter(msg => {
+  const filteredContacts = scopedContactMessages.filter(msg => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return true;
     return (
@@ -221,7 +244,7 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
     );
   });
 
-  const unreadCount = contactMessages.filter(m => !m.is_read).length;
+  const unreadCount = scopedContactMessages.filter(m => !m.is_read).length;
 
   return (
     <div className="space-y-6 select-none" id="admin-messages-panel-root" dir={isAr ? 'rtl' : 'ltr'}>
@@ -232,7 +255,7 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
         <div className="bg-[#0A4F68] border border-white/8 p-5 rounded-2xl flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
           <div className="text-right">
             <span className="text-xs text-[#B0D4E0] block font-ar">{isAr ? 'رسائل اتصل بنا الواردة' : 'Received Inquiries'}</span>
-            <span className="text-2xl font-black text-[#F5C842] mt-0.5 inline-block font-num">{contactMessages.length}</span>
+            <span className="text-2xl font-black text-[#F5C842] mt-0.5 inline-block font-num">{scopedContactMessages.length}</span>
           </div>
           <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#F5C842]/10 text-[#F5C842]">
             <Inbox className="w-5 h-5" />
@@ -313,7 +336,11 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
                 filteredContacts.length === 0 ? (
                   <div className="py-24 text-center text-slate-400 font-ar text-xs" id="empty-contact-message">
                     <Inbox className="w-10 h-10 text-slate-500 mx-auto mb-2.5 opacity-55" />
-                    <span>{isAr ? 'لا توجد رسائل تواصل مطابقة لمدخلات البحث.' : 'No contact us inquiries match your search query.'}</span>
+                    <span>
+                      {isAr
+                        ? (isMainAdmin ? 'لا توجد رسائل تواصل مطابقة لمدخلات البحث.' : 'لا توجد رسائل مرتبطة بالأفكار المفوضة لك.')
+                        : (isMainAdmin ? 'No contact us inquiries match your search query.' : 'No messages are linked to ideas delegated to you.')}
+                    </span>
                   </div>
                 ) : (
                   filteredContacts.map((msg) => {
@@ -400,17 +427,19 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
                         : (isAr ? 'تحديد كمقروء' : 'Mark as Read')
                       }
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => { void handleDeleteMessage(); }}
-                      disabled={isDeletingMessage}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-[10px] font-bold text-rose-300 transition-all hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                      id="btn-delete-contact-message"
-                      title={isAr ? 'حذف الرسالة' : 'Delete message'}
-                    >
-                      {isDeletingMessage ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                      <span>{isAr ? 'حذف' : 'Delete'}</span>
-                    </button>
+                    {isMainAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => { void handleDeleteMessage(); }}
+                        disabled={isDeletingMessage}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-[10px] font-bold text-rose-300 transition-all hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        id="btn-delete-contact-message"
+                        title={isAr ? 'حذف الرسالة' : 'Delete message'}
+                      >
+                        {isDeletingMessage ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        <span>{isAr ? 'حذف' : 'Delete'}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -498,7 +527,7 @@ export default function AdminMessages({ lang }: AdminMessagesProps) {
                 {messageReplies.length > 0 && (
                   <div className="rounded-xl border border-white/8 bg-[#083D52]/70 p-3">
                     <div className="mb-2 flex items-center gap-2 text-[11px] font-extrabold text-[#F5C842]">
-                      <Mail className="h-3.5 w-3.5" />
+                      <Inbox className="h-3.5 w-3.5" />
                       <span>{isAr ? 'سجل الردود' : 'Reply history'}</span>
                     </div>
                     <div className="space-y-2">
