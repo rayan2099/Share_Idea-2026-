@@ -244,13 +244,13 @@ export default function ProjectsCarousel({ lang }: ProjectsCarouselProps) {
                     >
                       {/* Badge top elements */}
                       <div className="space-y-4">
-                        {/* Image Thumbnail with object-cover */}
+                        {/* Image Thumbnail shown inside a fixed frame */}
                         <div className="w-full h-44 rounded-xl overflow-hidden relative border border-white/10 bg-black/20 shrink-0">
                           {project.image_url ? (
                             <img 
                               src={project.image_url} 
                               alt={project.title} 
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              className="w-full h-full object-contain object-center group-hover:scale-[1.01] transition-transform duration-500 bg-[#041a22]"
                               referrerPolicy="no-referrer"
                             />
                           ) : (

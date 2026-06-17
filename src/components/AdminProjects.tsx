@@ -20,7 +20,8 @@ import {
   createProject, 
   updateProject, 
   deleteProject, 
-  toggleProjectVisibility 
+  toggleProjectVisibility,
+  bulkNormalizeProjectImages
 } from '../supabaseService';
 
 interface AdminProjectsProps {
@@ -62,6 +63,9 @@ export default function AdminProjects({ lang }: AdminProjectsProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteImageUrl, setDeleteImageUrl] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isBulkNormalizing, setIsBulkNormalizing] = useState(false);
+  const [bulkNormalizeMessage, setBulkNormalizeMessage] = useState<string | null>(null);
+  const [bulkNormalizeError, setBulkNormalizeError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -246,6 +250,44 @@ export default function AdminProjects({ lang }: AdminProjectsProps) {
     }
   };
 
+  const handleNormalizeExistingImages = async () => {
+    const eligible = projects.filter(project => !!project.image_url);
+    if (eligible.length === 0) {
+      setBulkNormalizeError(isAr ? 'لا توجد صور موجودة لإعادة تهيئتها' : 'No existing images need normalization');
+      return;
+    }
+
+    setIsBulkNormalizing(true);
+    setBulkNormalizeError(null);
+    setBulkNormalizeMessage(isAr ? 'يتم الآن إعادة تهيئة صور المشاريع...' : 'Normalizing existing project images...');
+
+    try {
+      const result = await bulkNormalizeProjectImages(eligible, (progress) => {
+        setBulkNormalizeMessage(
+          isAr
+            ? `جاري معالجة ${progress.index} من ${progress.total} - ${progress.title}`
+            : `Processing ${progress.index} of ${progress.total} - ${progress.title}`
+        );
+      });
+
+      setBulkNormalizeMessage(
+        isAr
+          ? `تمت إعادة تهيئة ${result.updated} صورة بنجاح${result.failed ? `، وفشل ${result.failed}` : ''}.`
+          : `Normalized ${result.updated} image(s) successfully${result.failed ? `, ${result.failed} failed` : ''}.`
+      );
+      await fetchProjects();
+    } catch (error) {
+      console.error(error);
+      setBulkNormalizeError(
+        error instanceof Error
+          ? error.message
+          : (isAr ? 'فشل إعادة تهيئة الصور الحالية' : 'Failed to normalize existing images')
+      );
+    } finally {
+      setIsBulkNormalizing(false);
+    }
+  };
+
   return (
     <div className="space-y-6 font-ar" id="admin-projects-section">
       {/* Top Controls Action Menu */}
@@ -261,16 +303,45 @@ export default function AdminProjects({ lang }: AdminProjectsProps) {
           </p>
         </div>
         
-        <button
-          type="button"
-          onClick={handleOpenAdd}
-          className="px-4 py-2 bg-[#E8703A] hover:bg-[#d05d2c] text-white font-bold text-xs rounded-lg shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-          id="btn-add-project"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{isAr ? 'إضافة مشروع جديد' : 'Add New Project'}</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <button
+            type="button"
+            onClick={handleNormalizeExistingImages}
+            disabled={isBulkNormalizing || projects.filter(project => !!project.image_url).length === 0}
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/8 text-white font-bold text-xs rounded-lg shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            id="btn-normalize-project-images"
+          >
+            <FolderOpen className="w-4 h-4" />
+            <span>
+              {isBulkNormalizing
+                ? (isAr ? 'جاري إعادة تهيئة الصور...' : 'Normalizing...')
+                : (isAr ? 'إعادة تهيئة الصور القديمة' : 'Normalize Old Images')}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenAdd}
+            className="px-4 py-2 bg-[#E8703A] hover:bg-[#d05d2c] text-white font-bold text-xs rounded-lg shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+            id="btn-add-project"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{isAr ? 'إضافة مشروع جديد' : 'Add New Project'}</span>
+          </button>
+        </div>
       </div>
+
+      {(bulkNormalizeMessage || bulkNormalizeError) && (
+        <div className={`p-4 rounded-xl border text-sm ${bulkNormalizeError ? 'bg-red-500/10 border-red-500/25 text-red-200' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200'}`}>
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              {bulkNormalizeMessage && <p className="font-bold">{bulkNormalizeMessage}</p>}
+              {bulkNormalizeError && <p className="font-bold">{bulkNormalizeError}</p>}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       {loading ? (
@@ -341,7 +412,7 @@ export default function AdminProjects({ lang }: AdminProjectsProps) {
                       <img 
                         src={project.image_url} 
                         alt={project.title} 
-                        className="w-[60px] h-[60px] rounded-lg object-cover border border-white/10"
+                        className="w-[60px] h-[60px] rounded-lg object-contain object-center bg-[#051c24] border border-white/10 p-0.5"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
@@ -579,12 +650,14 @@ export default function AdminProjects({ lang }: AdminProjectsProps) {
 
                     {imagePreview ? (
                       <div className="space-y-2 w-full flex flex-col items-center relative">
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
-                          className="max-h-[90px] w-auto rounded-lg object-contain shadow-md border border-white/10"
-                          referrerPolicy="no-referrer"
-                        />
+                        <div className="w-full max-w-[260px] aspect-[4/3] rounded-lg overflow-hidden bg-[#041a22] border border-white/10 shadow-md">
+                          <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className="w-full h-full object-contain object-center"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
                         <p className="text-[10px] text-emerald-400 font-bold font-ar flex items-center gap-1">
                           <span>{imageFile ? (isAr ? 'تم تحميل الصورة بنجاح!' : 'New file selected') : (isAr ? 'صورة حالية محفوظة' : 'Current saved image')}</span>
                         </p>
